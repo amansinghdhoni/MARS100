@@ -1,0 +1,520 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>MARS 100: Survival Protocol — 3D Mars Survival Game</title><meta name="description" content="A 3D Mars survival game. Fix your rocket and fly home in 21 days. By Team Ra.One.">
+<style>
+:root{--pn:rgba(22,9,5,.82);--ac:#ff8a3d;--fg:#ffe9d6;--bad:#ff6b5a;--ok:#7bd96b}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#1a0b08;color:var(--fg);font:14px/1.4 system-ui,"Segoe UI",sans-serif;overflow:hidden}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#hud{position:fixed;top:0;left:0;right:0;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top,0px));background:linear-gradient(#000b,#0000)}
+#top{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:6px;font-weight:600}
+#top b{color:var(--ac);letter-spacing:.08em}
+#bars{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:5px}
+.b{position:relative;height:22px;border-radius:6px;background:#0008;overflow:hidden;font-size:12px}
+.b i{position:absolute;inset:0;width:var(--w);background:var(--c);opacity:.65}
+.b span,.b em{position:absolute;top:3px;font-style:normal;text-shadow:0 1px 2px #000}
+.b span{left:6px}.b em{right:6px}
+small.n{color:var(--bad)}small.p{color:var(--ok)}
+#ui{position:fixed;left:0;right:0;bottom:0;max-height:50vh;overflow:auto;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:linear-gradient(#0000,#140805f0 22%);display:grid;gap:8px}
+#mid{display:grid;grid-template-columns:1fr minmax(230px,320px);gap:8px}
+@media(max-width:720px){#mid{grid-template-columns:1fr}}
+.pn{background:var(--pn);border:1px solid #ff8a3d44;border-radius:10px;padding:8px 10px}
+#log{max-height:17vh;overflow:auto}#log p{margin-bottom:3px}#log .b2{color:var(--bad)}#log .g{color:var(--ok)}#log .s{color:#ffc88a}
+#fc div{font-size:12px;white-space:nowrap}#fc .r{color:var(--bad);font-weight:700}#fc .y{color:#ffd54a}
+#fc h4{font-size:12px;color:var(--ac);margin-bottom:3px}
+#tip{font-size:17px;font-weight:700;color:#ffe08a}
+button{font:inherit;color:var(--fg);cursor:pointer}
+#acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(124px,1fr));gap:8px}
+.card{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px 8px;border-radius:14px;border:2px solid var(--c);background:linear-gradient(160deg,color-mix(in srgb,var(--c) 28%,#1a0b08),#1a0b08);text-align:center;transition:transform .12s,box-shadow .12s}
+.card:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 6px 18px color-mix(in srgb,var(--c) 55%,transparent)}
+.card:disabled{opacity:.35;filter:grayscale(.6);cursor:not-allowed}
+.card .ic{font-size:28px;width:50px;height:50px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--c) 35%,#000)}
+.card b{font-size:13px}.card .ch{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.card em{font-style:normal;font-size:11px;padding:1px 7px;border-radius:99px}
+.card .cs{background:#ff5a4d33;color:#ffb0a8}.card .gn{background:#6fe0a033;color:#a8ffd0}
+.card.end{grid-column:1/-1;flex-direction:row;justify-content:center;background:linear-gradient(90deg,#ff8a3d,#ffb347);color:#220d04;font-weight:800;font-size:16px;padding:12px}
+.pulse{animation:pl 1s infinite}@keyframes pl{50%{box-shadow:0 0 20px var(--ac)}}
+#home{position:fixed;inset:0;z-index:8;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:16px;background:radial-gradient(#0000 25%,#000b)}
+#home h1{font-size:clamp(46px,11vw,104px);letter-spacing:.1em;color:var(--ac);text-shadow:0 0 30px #ff8a3d88,0 4px 0 #5a2a14;line-height:1}
+#home h2{letter-spacing:.35em;font-size:clamp(13px,2.4vw,22px);color:#ffe9d6}
+#home p{max-width:420px;color:#ffd6b8}
+.hb{display:grid;gap:10px;width:min(320px,86vw);margin:12px 0}
+.hb button{padding:14px;border-radius:14px;border:2px solid var(--ac);background:#2b1409cc;font-size:19px;font-weight:800;letter-spacing:.08em}
+.hb button:first-child{background:linear-gradient(90deg,#ff8a3d,#ffb347);color:#220d04;animation:pl 1.6s infinite}
+.hb button:hover{transform:scale(1.04)}
+#home small{color:#e8b99a}
+#toast{position:fixed;top:110px;left:50%;transform:translateX(-50%);z-index:12;background:#000d;border:2px solid var(--bad);padding:8px 16px;border-radius:12px;font-weight:700;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;max-width:90vw}
+#home{display:none;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:0;padding:0;overflow-y:auto;scroll-behavior:smooth;background:none;text-align:center}
+#home nav{position:sticky;top:0;z-index:3;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 5vw;padding-top:calc(10px + env(safe-area-inset-top,0px));background:#140805cc;backdrop-filter:blur(6px);border-bottom:1px solid #ff8a3d44}
+#home nav b{color:var(--ac);letter-spacing:.12em}#home nav span{display:flex;gap:14px;align-items:center;flex-wrap:wrap}#home nav a{cursor:pointer;color:#ffd6b8}#home nav a:hover{color:var(--ac)}
+#home nav button,#home footer button{background:var(--ac);color:#220d04;font-weight:800;border:0;border-radius:8px;padding:6px 14px}
+#hero{min-height:calc(100vh - 56px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:30px 16px;text-shadow:0 2px 12px #000}
+.sec{padding:64px 6vw;background:#140805e6;border-top:1px solid #ff8a3d33}.sec h3{font-size:28px;color:var(--ac);margin-bottom:16px;letter-spacing:.06em}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;max-width:1000px;margin:0 auto}
+.fc{background:#2b1409;border:1px solid #ff8a3d55;border-radius:14px;padding:18px}.fc span{font-size:34px;display:block;margin-bottom:6px}.fc p{color:#e8b99a;font-size:13px;margin-top:4px}
+.rw{line-height:2.1;font-size:17px}#home footer{padding:30px 6vw;background:#0c0403;color:#e8b99a;font-size:13px;line-height:2}
+#top button{background:#3a1a0e;border:1px solid #ff8a3d88;border-radius:8px;padding:2px 10px}
+#cs{position:fixed;inset:0;width:100%;height:100%;z-index:20;display:none}
+#cap{position:fixed;left:0;right:0;bottom:11%;text-align:center;font-size:clamp(22px,4.5vw,38px);font-weight:800;z-index:21;display:none;text-shadow:0 2px 8px #000,0 0 18px #000;padding:0 14px;pointer-events:none}
+#skip{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:12px;z-index:22;display:none;background:#000a;border:1px solid #fff8;border-radius:8px;padding:6px 12px}
+#md{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:14px;z-index:9}
+#md .box{max-width:580px;max-height:92vh;overflow:auto;background:#1e0d07;border:2px solid var(--ac);border-radius:14px;padding:18px}
+#mt{color:var(--ac);font-size:18px;margin-bottom:8px}#mx{white-space:pre-line;margin-bottom:12px}
+#md input{width:100%;padding:10px;border-radius:8px;border:1px solid var(--ac);background:#2b1409;color:var(--fg);font-size:16px;margin-bottom:10px}
+#mb{display:grid;gap:6px}#mb button{background:#3a1a0e;border:1px solid var(--ac);border-radius:8px;padding:9px;text-align:left}
+#mb button:hover{background:var(--ac);color:#220d04}
+<style>
+#hud{padding-bottom:4px}#top{gap:10px;margin-bottom:4px;font-size:13px}
+#bars{grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px}.b{height:18px;font-size:11px}.b span,.b em{top:1px}
+#ui{max-height:none;overflow:visible;display:grid;gap:4px;padding:6px 10px calc(8px + env(safe-area-inset-bottom,0px));background:#140805e6;backdrop-filter:blur(8px);border-top:1px solid #ff8a3d66;border-radius:14px 14px 0 0}
+#tip{font-size:14px;padding:2px 6px}#tip small{display:block;font-size:11px;font-weight:400;color:#e8b99a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#acts{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:thin}
+.card{flex:0 0 auto;width:98px;padding:6px 4px;border-radius:12px;touch-action:pan-x;user-select:none;-webkit-user-select:none;cursor:grab}
+.card .ic{font-size:22px;width:36px;height:36px}.card b{font-size:12px;white-space:nowrap}
+.card .ch{flex-direction:column;gap:2px}.card em{font-size:10px;white-space:nowrap}
+.card.off{opacity:.35;filter:grayscale(.6);cursor:not-allowed}.card.off:hover{transform:none;box-shadow:none}
+.card.end{grid-column:auto;width:108px;flex-direction:column;font-size:13px;padding:8px;cursor:pointer}
+@media(max-height:700px){.card .gn{display:none}}
+#launchb{width:150px}
+#gh{position:fixed;z-index:30;pointer-events:none;display:none;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;font-size:32px;place-items:center;background:color-mix(in srgb,var(--c) 40%,#1a0b08);border:3px solid var(--c);box-shadow:0 8px 24px #000a;transform:scale(1.1)}
+#tut{position:fixed;left:50%;transform:translateX(-50%);z-index:7;display:none;background:#000d;border:2px solid #ffd54a;border-radius:12px;padding:8px 12px;font-weight:700;max-width:min(92vw,520px);text-align:center;font-size:14px}#tut button{display:block;margin:6px auto 0;font-size:12px;padding:3px 10px}.card.end{position:sticky;bottom:0;z-index:3}.card.hl{box-shadow:0 0 0 3px #ffd54a,0 0 22px #ffd54a;animation:pl 1s infinite}
+</style></head><body>
+<canvas id="gl"></canvas><canvas id="cv"></canvas>
+<div id="hud"><div id="top"></div><div id="bars"></div></div>
+<div id="ui"><div id="tip"></div><div id="acts"></div></div>
+<div id="tut"></div><div id="md"><div class="box"><h2 id="mt"></h2><div id="mx"></div><input id="in" maxlength="16" placeholder="Type your name" style="display:none"><div id="mb"></div></div></div>
+<div id="home">
+<nav><b>☄ MARS 100</b><span><a data-s="feat">Features</a><a data-s="how">How it works</a><a data-s="res">Resources</a><a data-s="team">Team</a><button id="hp2">▶ Play</button></span></nav>
+<section id="hero"><h1>MARS 100</h1><h2>SURVIVAL PROTOCOL</h2><p>Your ship crashed on Mars. Farm, find water, fix the rocket and survive 21 days to fly home!</p><div class="hb"><button id="hp">▶ PLAY</button><button id="hs">⚙ SETTINGS</button><button id="hi">ℹ INFO</button><button id="hc" style="display:none">⏯ CONTINUE</button><button id="ha">🏆 ACHIEVEMENTS</button></div><small>🖱 Drag to look around the 3D Mars · scroll down to learn more ↓</small></section>
+<section class="sec" id="feat"><h3>Game Features</h3><div class="grid">
+<div class="fc"><span>🌍</span><b>Real 3D Mars</b><p>Walk-around world with a crashed ship, domes, solar panels and storms. Drag to look around.</p></div>
+<div class="fc"><span>📖</span><b>21-Day Story</b><p>Radio calls, a sandstorm, fever, solar flares and a lost rover. Every day is different.</p></div>
+<div class="fc"><span>🔗</span><b>Linked Resources</b><p>More food needs more water. More water needs more power. Plan carefully!</p></div>
+<div class="fc"><span>🎬</span><b>Movie Scenes</b><p>Launch from Earth, crash on Mars, and fly home when the rocket is fixed.</p></div>
+<div class="fc"><span>🎚</span><b>3 Difficulties</b><p>Easy, Normal and Hard. Storms hurt more on Hard.</p></div>
+<div class="fc"><span>👶</span><b>Easy For Everyone</b><p>Short words and a yellow helper line that tells you what to do next.</p></div></div></section>
+<section class="sec" id="how"><h3>How It Works</h3><div class="grid">
+<div class="fc"><span>1️⃣</span><b>Crash</b><p>Type your name. Your rocket falls on Mars.</p></div>
+<div class="fc"><span>2️⃣</span><b>Survive</b><p>Keep Air, Water, Food and Power above zero. If any bar stays empty for 3 days, life support fails and you lose!</p></div>
+<div class="fc"><span>3️⃣</span><b>Fix</b><p>Collect parts. Fix the rocket and fill the fuel to 100.</p></div>
+<div class="fc"><span>4️⃣</span><b>Escape</b><p>Be ready by Day 21 and fly home to Earth!</p></div></div></section>
+<section class="sec" id="res"><h3>The Resource Web</h3><p class="rw">🌱 Gardens make 🍎 food and 🫁 air<br>↓ but they drink 💧 water and use ⚡ power<br>↓ ⛏️ water makers give water but use power<br>↓ ☀️ sun panels give power, but 🌪 storms and dust hide the sun<br>↓ 🛡️ walls keep storms out</p></section>
+<section class="sec" id="team"><h3>Team Ra.One</h3><div class="grid" style="max-width:520px"><div class="fc"><span>👨‍🚀</span><b>Aman Singh</b><p>Developer</p></div><div class="fc"><span>👩‍🚀</span><b>Isha Mande</b><p>Developer</p></div></div></section>
+<footer>© 2026 Team Ra.One · Aman Singh &amp; Isha Mande · Built with three.js<br><button id="hp3">▶ Play now</button></footer>
+</div>
+<div id="toast"></div><canvas id="cs"></canvas><div id="cap"></div><button id="skip">Skip ⏭</button>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=s=>document.querySelector(s),R=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const DAYS=21,CAP={hp:100,hull:100,fuel:100,parts:99},STORM=[8,9,18,19];
+let S=null;
+const DF={easy:{ap:4,o2:80,water:80,food:60,energy:80,parts:8,hull:20,wu:2,fw:2,ff:5,fu:2,su:.25,ss:.6,du:.7,sc:[3,5],rp:18,fc:12,fg:18,sh:[4,1,0],mi:0},
+normal:{ap:4,o2:70,water:60,food:50,energy:70,parts:5,hull:10,wu:3,fw:2.5,ff:5,fu:3,su:.1,ss:.4,du:.5,sc:[2,4],rp:15,fc:15,fg:15,sh:[10,4,1],mi:.25},
+hard:{ap:3,o2:60,water:50,food:40,energy:60,parts:4,hull:10,wu:3.5,fw:3,ff:5,fu:3.5,su:.05,ss:.3,du:.4,sc:[2,3],rp:12,fc:15,fg:12,sh:[14,6,2],mi:.4}};
+let D=DF.normal,ST={diff:'normal',cut:true,snd:true,ach:{}};try{Object.assign(ST,JSON.parse(localStorage.getItem('m100')||'{}'))}catch(e){}
+const missing=()=>{const m=[];if(S.hull<100)m.push(`🛠 Rocket fix ${Math.round(S.hull)}/100`);if(S.fuel<100)m.push(`🚀 Fuel ${Math.round(S.fuel)}/100`);if(S.cores<3)m.push(`⭐ Nav Cores ${S.cores}/3`);if(rpCount()<3)m.push(`🧩 Rocket parts ${rpCount()}/3`);return m};
+const sv=()=>{try{localStorage.setItem('m100',JSON.stringify(ST))}catch(e){}};
+let _tt;function toast(m){const e=$('#toast');e.textContent=m;e.style.opacity=1;clearTimeout(_tt);_tt=setTimeout(()=>e.style.opacity=0,3200)}
+
+
+/* ---- SOUND (synthesized, no files) ---- */
+let AC=null,WG=null;
+function aud(){if(!ST.snd)return null;try{if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();startAmb()}if(AC.state=='suspended')AC.resume();return AC}catch(e){return null}}
+function tone(f,d,ty,v,t0,f2){const a=aud();if(!a)return;const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+(t0||0);o.type=ty||'sine';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(v||.1,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d)}
+function noiseB(a,d){const n=Math.floor(a.sampleRate*d),b=a.createBuffer(1,n,a.sampleRate),x=b.getChannelData(0);for(let i=0;i<n;i++)x[i]=Math.random()*2-1;return b}
+function rumble(d,f0,f1,v){const a=aud();if(!a)return;const s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain(),t=a.currentTime;s.buffer=noiseB(a,d);f.type='lowpass';f.frequency.setValueAtTime(f0,t);f.frequency.exponentialRampToValueAtTime(f1,t+d*.8);g.gain.setValueAtTime(.001,t);g.gain.exponentialRampToValueAtTime(v,t+d*.25);g.gain.exponentialRampToValueAtTime(.001,t+d);s.connect(f);f.connect(g);g.connect(a.destination);s.start(t)}
+function sfx(k){if(!aud())return;
+ if(k=='click')tone(520,.07,'square',.04,0,780);
+ else if(k=='good'){tone(523,.12,'triangle',.1);tone(784,.22,'triangle',.1,.1)}
+ else if(k=='bad')tone(220,.28,'sawtooth',.07,0,110);
+ else if(k=='launch'){rumble(5,200,3000,.4);tone(60,4,'sawtooth',.1,0,220)}
+ else if(k=='thunder')rumble(1.8,500,80,.5)}
+function startAmb(){const a=AC,s=a.createBufferSource(),f=a.createBiquadFilter();s.buffer=noiseB(a,3);s.loop=true;f.type='bandpass';f.frequency.value=600;f.Q.value=.6;WG=a.createGain();WG.gain.value=0;s.connect(f);f.connect(WG);WG.connect(a.destination);s.start();
+ const N=[196,233,262,294,349,392];
+ setInterval(()=>{if(!ST.snd){WG.gain.value=0;return}WG.gain.setTargetAtTime((S&&S.storm?.22:0),AC.currentTime,.6);if(Math.random()<.7)tone(N[R(0,5)],2.4,'sine',.035)},1300)}
+addEventListener('pointerdown',e=>{aud();if(e.target.closest&&e.target.closest('button'))sfx('click')});
+
+/* ---- ACHIEVEMENTS ---- */
+const ACH={win:['🚀','Home at Last','Win the game'],hard:['😤','Mars Legend','Win on Hard'],nodmg:['🛡️','Untouchable','Win without losing any health'],cores10:['⭐','Fast Navigator','Find all 3 Nav Cores by Day 10'],alien:['👽','Beyond the Stars','Find the secret ending'],inv:['🔬','Inventor','Unlock all 5 upgrades'],mech:['🧩','Mechanic','Collect all 3 rocket parts']};
+function unlock(k){if(ST.ach[k])return;ST.ach[k]=1;sv();toast('🏆 Achievement: '+ACH[k][1]+'!');sfx('good')}
+function achList(){modal('🏆 Achievements',Object.entries(ACH).map(([k,v])=>(ST.ach[k]?'✅ ':'🔒 ')+v[0]+' '+v[1]+' — '+v[2]).join('\n'),[['⬅ Back',()=>{}]])}
+
+/* ---- TECH TREE ---- */
+const TECH={sol:['☀️','Solar Cells+','Panels make 35% more power',4],drill:['⛏️','Deep Drill','Water makers give +4 water/day each',4],fuel:['🚀','Turbo Fuel','Make fuel gives +10 more',5],guard:['🧹','Dust Guard','Sand never blocks your panels',3],med:['🏥','Med Bay','Rest gives +25 health',4]};
+function research(){const av=Object.keys(TECH).filter(k=>!S.tech[k]);
+ modal('🔬 Tech Lab','Spend parts on a permanent upgrade. You have '+S.parts+' 🔧 parts.',av.map(k=>[`${TECH[k][0]} ${TECH[k][1]} (−${TECH[k][3]}🔧): ${TECH[k][2]}`,()=>{const c=TECH[k][3];if(S.parts<c){S.ap++;toast('Not enough parts!');render();return}add({parts:-c});S.tech[k]=1;log(`🔬 Upgrade ready: ${TECH[k][1]}!`,'g');toast(`🔬 ${TECH[k][1]} unlocked!`);sfx('good');if(Object.keys(S.tech).length>=5)unlock('inv');render()}]).concat([[ 'Cancel (keep my move)',()=>{S.ap++;render()}]]))}
+
+/* ---- ROCKET PARTS ---- */
+const RPN={eng:['⚙️','Engine'],hs:['🛡️','Heat Shield'],chip:['🔌','Guidance Chip']};
+const rpCount=()=>Object.keys(S.rp).length,rpI=()=>Object.keys(RPN).map(k=>S.rp[k]?RPN[k][0]:'▫️').join('');
+function grantRP(){const m=Object.keys(RPN).filter(k=>!S.rp[k]);if(!m.length)return '';const k=m[R(0,m.length-1)];S.rp[k]=1;if(rpCount()>=3)unlock('mech');sfx('good');return ` 🧩 You found the ${RPN[k][0]} ${RPN[k][1]}! (${rpCount()}/3)`}
+
+/* ---- TUTORIAL ---- */
+const TUT=[['Find parts','🔧 Step 1/4: Drag the "Find parts" card onto the crashed ship.'],['Build garden','🌱 Step 2/4: Drag "Build garden" onto an empty spot on the ground. Gardens make food and air!'],['Find water','🧊 Step 3/4: Drag "Find water" onto the Mars ground.'],['#end','⏭ Step 4/4: Press the orange GO TO NEXT DAY button!']];
+function tutNext(n){if(S.tut&&TUT[S.tut-1][0]==n)S.tut++}
+function tutUpd(){const e=$('#tut');document.querySelectorAll('#acts .card.hl').forEach(c=>c.classList.remove('hl'));if(!S||!S.tut||S.over||S.tut>TUT.length){e.style.display='none';return}
+ const st=TUT[S.tut-1];e.style.display='block';e.style.top=($('#hud').offsetHeight+8)+'px';e.innerHTML=st[1]+'<button id="ts">Skip tutorial</button>';$('#ts').onclick=()=>{S.tut=0;tutUpd()};
+ const t=st[0]=='#end'?$('#end'):[...document.querySelectorAll('#acts .card[data-i]')].find(c=>c.querySelector('b').textContent==st[0]);t&&t.classList.add('hl')}
+
+/* ---- SAVE / RESUME ---- */
+function progress(){if(S.hp<(S.lh==null?100:S.lh))S.hurt=1;S.lh=S.hp;if(S.cores>=3&&S.day<=10)unlock('cores10');if(!S.over)try{localStorage.setItem('m100s',JSON.stringify(S))}catch(e){}}
+function hasSave(){try{const v=JSON.parse(localStorage.getItem('m100s'));return !!(v&&!v.over&&v.day)}catch(e){return false}}
+function resume(){let v;try{v=JSON.parse(localStorage.getItem('m100s'))}catch(e){}if(!v||v.over)return;S=v;D=DF[S.diff]||DF.normal;PID=Math.max(0,...S.poi.map(p=>p.id));$('#home').style.display='none';render();toast('▶ Game loaded: Day '+S.day);if(S.pend&&S.pend===S.day){S.pend=0;startDay()}}
+
+const add=o=>{for(const k in o)S[k]=Math.max(0,Math.min(CAP[k]||150,S[k]+o[k]))};
+const log=(m,c='')=>{if(!m)return;if(c=='b2')sfx('bad');S.log.unshift([m,c]);if(S.log.length>30)S.log.pop()};
+function newGame(name){D=DF[ST.diff]||DF.normal;S={name,day:1,ap:D.ap,bonus:0,o2:D.o2,water:D.water,food:D.food,energy:D.energy,hp:100,parts:D.parts,fuel:0,hull:D.hull,farms:0,panels:1,ext:0,ice:false,shield:0,dust:false,storm:0,over:false,log:[],pos:{farms:[],panels:[],ext:[]},poi:[],cores:0,gear:0,ally:false,crisis:0,diff:ST.diff,tech:{},rp:{},clue:0,hurt:0,tut:0,pend:0,lh:100};
+ log('Day 1: You are on Mars. Let us fix the rocket!','s');spawnPoi(0);spawnPoi(0)}
+/* ---- RESOURCE WEB: everything feeds everything ---- */
+function rates(s=S){
+ const E=1+(s.day-1)*.045,storm=s.storm>0,sf=storm?(s.shield?D.ss:D.su):1,dust=s.dust&&!(s.tech&&s.tech.guard)?D.du:1;
+ const solar=(6+s.panels*9)*sf*dust*(s.tech&&s.tech.sol?1.35:1),wOK=s.water>0,eOK=s.energy>0;
+ const fm=(wOK?1:.3)*(eOK?1:.5)*(storm&&!s.shield?.4:1);
+ const need=Math.max(0,5-s.farms*1.5*fm),t=(wOK&&eOK)?Math.min(1,need/7):0; // oxygenator throttle
+ return{o2:s.farms*1.5*fm+7*t-5,
+  water:(eOK?s.ext*(7+(s.tech&&s.tech.drill?4:0)):0)-D.wu*E-s.farms*D.fw-3*t,   // crew + irrigation + electrolysis
+  food:s.farms*D.ff*fm-D.fu*E-(s.ally?1.5:0),
+  energy:solar-4*E-s.farms*2-s.ext*4-3*t};      // farms+extractors+oxygenator drain power
+}
+/* ---- ACTIONS ---- */
+const A=[
+{i:'🧭',n:'Explore',t:'poi',d:'Go on an adventure at a glowing marker',cost:'−8 ⚡',gain:'🎲 adventure',col:'#ffd54a',ok:()=>S.energy>=8&&S.poi.length>0,f:()=>{const p=S.poi[TP]||S.poi[0];add({energy:-8});setTimeout(()=>adv(p),60);return 'You head out to explore...'}},
+{i:'🔧',n:'Find parts',t:'wreck',d:'Search the wreck for parts',cost:'−5 ⚡',gain:()=>`+${D.sc[0]}-${D.sc[1]} 🔧`,col:'#ffb347',ok:()=>S.energy>=5,f:()=>{const p=R(D.sc[0],D.sc[1]);add({energy:-5,parts:p});let m=`You found ${p} parts.`;if(Math.random()<.25){add({food:8});m+=' You also found food!'}if(Math.random()<.15)m+=grantRP();return m}},
+{i:'🧊',n:'Find water',t:'ground',d:'Melt ice pockets',cost:'−6 ⚡',gain:'+10-18 💧',col:'#4a9eff',ok:()=>S.energy>=6,f:()=>{const w=R(10,18);add({energy:-6,water:w});return `You got ${w} water.`}},
+{i:'🌱',n:'Build garden',t:'spot',pl:'farms',d:'Makes food and air. Drinks water, uses power.',cost:'−2🔧 −10💧',gain:'+🍎 food',col:'#6fe0a0',ok:()=>S.parts>=2&&S.water>=10&&S.farms<6,f:()=>{add({parts:-2,water:-10});S.farms++;return 'A garden! It makes food and air. It drinks water and uses power.'}},
+{i:'☀️',n:'Sun panel',t:'spot',pl:'panels',d:'Makes power',cost:'−2 🔧',gain:'+⚡ power',col:'#ffd54a',ok:()=>S.parts>=2&&S.panels<6,f:()=>{add({parts:-2});S.panels++;return 'A new sun panel. More power!'}},
+{i:'⛏️',n:'Water maker',t:'spot',pl:'ext',d:'Needs Day 3 ice',cost:'−3 🔧',gain:'+7 💧/day',col:'#4ad0ff',ok:()=>S.ice&&S.parts>=3&&S.ext<4,f:()=>{add({parts:-3});S.ext++;return 'The water maker gives water each day. It uses power.'}},
+{i:'🛠️',n:'Fix rocket',t:'rocket',d:'Make the rocket strong',cost:'−3🔧 −4⚡',gain:()=>`+${D.rp} 🛠`,col:'#d68cff',ok:()=>S.parts>=3&&S.energy>=4&&S.hull<100,f:()=>{add({parts:-3,energy:-4,hull:D.rp});return `Rocket fix is now ${S.hull}.`}},
+{i:'🚀',n:'Make fuel',t:'rocket',d:'Fill the fuel tank',cost:()=>`−${D.fc}💧 −${D.fc}⚡`,gain:()=>`+${D.fg+(S.tech.fuel?10:0)} 🚀`,col:'#ff9f5a',ok:()=>S.water>=D.fc&&S.energy>=D.fc&&S.fuel<100,f:()=>{add({water:-D.fc,energy:-D.fc,fuel:D.fg+(S.tech.fuel?10:0)});return `Fuel is now ${S.fuel}.`}},
+{i:'🛡️',n:'Build walls',t:'ground',d:'Keeps storms out',cost:'−2 🔧',gain:'🌪 safer',col:'#8fb4ff',ok:()=>S.parts>=2&&S.shield<2,f:()=>{add({parts:-2});S.shield++;return `Walls are ready! Level ${S.shield}.`}},
+{i:'🧹',n:'Clean panels',t:'panel',d:'Sand blocks the sun',cost:'−3 ⚡',gain:'☀ works',col:'#ffe08a',h:()=>S.dust,ok:()=>S.energy>=3,f:()=>{add({energy:-3});S.dust=false;return 'Clean panels! More power.'}},
+{i:'🔬',n:'Research',t:'self',d:'Spend parts on a permanent upgrade',cost:'🔧 parts',gain:'⬆ upgrade',col:'#7fffd4',ok:()=>Object.keys(TECH).some(k=>!S.tech[k]),f:()=>{setTimeout(research,60);return 'You open the Tech Lab...'}},
+{i:'😴',n:'Rest',t:'self',d:'Sleep to get better',cost:'1 tap',gain:()=>`+${S.tech.med?25:15} ❤`,col:'#ff7b9c',ok:()=>S.hp<100,f:()=>{add({hp:S.tech.med?25:15});return 'You slept. You feel better!'}}];
+const fxx=v=>typeof v=='function'?v():v;
+function act(i,pt){const a=A[i];if(S.over||S.ap<=0||!a.ok())return;if(a.pl)S.pos[a.pl][S[a.pl]]=pt||freeSpot();const m=a.f();S.ap--;log(m);sfx('click');tutNext(a.n);render();if(S.hull>=100&&!S.m1){S.m1=1;cine('fixed')}if(S.fuel>=100&&!S.m2){S.m2=1;cine('fueled')}}
+/* ---- 21-DAY STORY ---- */
+const EV={4:()=>({t:'DAY 4 — Radio tip',x:'Earth says: "The rocket also needs 3 special parts: an Engine, a Heat Shield and a Guidance Chip. Look for 🧩 signals on the map. And be careful near the Ancient Ruins. Strange glyphs were seen there..."',c:[['Got it!',()=>'Watch the map for 🧩 signals and study the ruins.']]}),
+2:()=>({t:'DAY 2 — Hello from Earth!',x:'A voice comes on the radio. "Hello! Your rocket can still fly. Fix it. Fill it with fuel. Find 3 Nav Cores too, they steer the rocket. Be done by Day 21!"',c:[['Say hello (uses 8 power, you feel happy)',()=>{add({energy:-8,hp:5});return 'Earth knows you are safe. Fix the rocket and make fuel by Day 21.'}],['Stay quiet',()=>'OK. Fix the rocket and make fuel by Day 21.']]}),
+3:()=>({t:'DAY 3 — Ice!',x:'You found ice under the sand! Ice is water. Now you can build a Water Maker.',c:[['Yay!',()=>{S.ice=true;return 'You can build a Water Maker now.'}]]}),
+5:()=>({t:'DAY 5 — Magic Seeds',x:'You found a box of seeds! What do you want to do?',c:[['Plant them (free garden, uses 10 water)',()=>{if(S.farms<6){S.farms++;add({water:-10});return 'A free garden is growing!'}return 'No room for more gardens.'}],['Eat them (+18 food)',()=>{add({food:18});return 'Yum!'}]]}),
+6:()=>({t:'DAY 6 — A big storm is coming!',x:'The radio says: "A big sand storm comes on Day 8!" Build walls to stay safe. Keep your power and water full.',c:[['Build walls (uses 3 parts)',()=>{if(S.parts>=3)add({parts:-3});else add({energy:-15});S.shield=Math.min(2,S.shield+1);return 'Your walls are ready.'}],['Fill up power (+15)',()=>{add({energy:15});return 'Power is fuller.'}],['Do nothing',()=>'Hmm. Good luck!']]}),
+8:()=>S.shield>0?({t:'DAY 8 — THE BIG STORM',x:'Wind and sand are everywhere! Your walls are strong. You are safe. The sun panels will not work well for 2 days. Use your saved power.',c:[['Wait inside',()=>{S.dust=true;const L=S.shield>1?.9:.75;for(const k of['water','food','energy'])S[k]=Math.floor(S[k]*L);return 'The walls held, but sand got in! You lost some supplies.'}]]}):({t:'DAY 8 — THE BIG STORM',x:'Wind and sand are everywhere! Your gardens and panels are breaking! Go out to save them, or hide inside.',c:[['Go out and save them (you lose 35 health)',()=>{add({hp:-35});S.dust=true;return 'You saved your base! Ouch, you are very hurt.'}],['Hide inside (you lose half your gardens and some supplies)',()=>{S.farms=Math.floor(S.farms/2);S.panels=Math.max(1,S.panels-2);for(const k of['water','food','energy'])S[k]=Math.floor(S[k]*.55);S.dust=true;return 'The storm broke many things.'}]]}),
+10:()=>({t:'DAY 10 — The storm is over',x:S.dust?'The storm is gone! Sand covers your sun panels. Drag "Clean panels".':'The storm is gone! Your walls kept everything safe.',c:[['OK',()=>S.dust?'Clean the panels!':'Great job!']]}),
+11:()=>({t:'DAY 11 — You feel sick',x:'You have a fever. You feel hot and tired.',c:[['Take medicine (uses 10 water and 5 food)',()=>{add({water:-10,food:-5});return 'You feel better!'}],['Do nothing (you lose 20 health)',()=>{add({hp:-20});return 'You are still sick.'}]]}),
+12:()=>({t:'DAY 12 — A message from home',x:'Earth says: "We love you, '+S.name+'! Only you can fly the rocket!"',c:[['Send a hug back (+10 health)',()=>{add({hp:10});return 'You feel happy!'}],['Work extra hard (+1 move tomorrow, lose 8 health)',()=>{S.bonus=1;add({hp:-8});return 'You will work extra tomorrow.'}]]}),
+13:()=>({t:'DAY 13 — Water is leaking!',x:'A pipe is broken. Water is going out!',c:[['Fix the pipe (uses 2 parts)',()=>{if(S.parts>=2){add({parts:-2});return 'Pipe fixed!'}add({water:-20});return 'No parts! You lost 20 water.'}],['Use tape (you lose 20 water)',()=>{add({water:-20});return 'The tape worked, but you lost water.'}]]}),
+14:()=>({t:'DAY 14 — Sun burst!',x:'A bright burst from the sun hit your machines.',c:[['Cover the machines (uses 2 parts)',()=>{if(S.parts>=2){add({parts:-2});return 'Machines are safe.'}add({energy:-30,hull:-5});return 'No parts! Machines broke.'}],['Do nothing (you lose 35 power and the rocket gets hurt)',()=>{add({energy:-35,hull:-5});return 'Ouch. Power and rocket are hurt.'}]]}),
+15:()=>({t:'DAY 15 — The old rover',x:'You see an old rover far away. It has lots of parts!',c:[['Go get parts (+8 parts, lose 10 power and 10 health)',()=>{add({energy:-10,hp:-10,parts:8});return 'You got 8 parts!'+grantRP()}],['Stay home',()=>'You stay safe.']]}),
+16:()=>({t:'DAY 16 — Wind twirl!',x:'A dust twirl is coming for your garden!',c:[['Cover the garden (you lose 10 health)',()=>{add({hp:-10});return 'Garden is safe.'}],['Let it go (you lose a garden)',()=>{S.farms=Math.max(0,S.farms-1);return 'A garden is gone.'}]]}),
+17:()=>({t:'DAY 17 — Another storm',x:'A small storm comes on Day 18. Walls keep you safe.',c:[['Build walls (uses 2 parts)',()=>{if(S.parts>=2&&S.shield<2){add({parts:-2});S.shield++;return 'Walls are ready.'}return 'You are ready.'}],['Fill up power (+15)',()=>{add({energy:15});return 'Power is fuller.'}]]}),
+18:()=>S.shield<1?({t:'DAY 18 — The small storm',x:'The small storm hits you!',c:[['OK',()=>{S.farms=Math.max(0,S.farms-1);S.dust=true;return 'You lost a garden. Panels have sand.'}]]}):null,
+20:()=>({t:'DAY 20 — Almost there!',x:'The rocket flies tomorrow! Make it ready.',c:[['Work super hard (rocket +8, fuel +8, you lose 20 health)',()=>{add({hull:8,fuel:8,hp:-20});return 'You worked so hard!'}],['Take it easy (+10 health)',()=>{add({hp:10});return 'You feel good.'}]]}),
+21:()=>({t:'DAY 21 — ROCKET DAY!',x:'Today is the big day! Finish the rocket: Fix 100, Fuel 100, 3 Nav Cores and 3 rocket parts. Then press FINAL LAUNCH!',c:[['Go!',()=>'Here we go!']]})};
+/* ---- FLOW ---- */
+function startDay(){const e=EV[S.day]&&EV[S.day]();if(!e){mishap();render();return}
+ S.pend=S.day;render();log(e.t,'s');
+ modal(e.t,e.x,e.c.map(([l,f])=>[l,()=>{const m=f();S.pend=0;log(m);if(S.hp<=0)return end('dead');if(!S.storm)mishap();if(S.hp<=0)return end('dead');render()}]))}
+function endDay(){if(S.over||$('#md').style.display=='flex')return;const r=rates();if(S.tut){S.tut=0;tutUpd()}
+ add({o2:r.o2,water:r.water,food:r.food,energy:r.energy});
+ let d=0,m=[];
+ if(S.o2<=0){d+=25;m.push('No air!')}if(S.water<=0){d+=12;m.push('No water.')}if(S.food<=0){d+=8;m.push('No food.')}if(S.energy<=0){d+=6;m.push('No power. It is cold.')}
+ const zero=S.o2<=0||S.water<=0||S.food<=0||S.energy<=0;
+ S.crisis=zero?(S.crisis||0)+1:0;
+ if(d){S.hp-=d;log(`Day ${S.day}: ${m.join(' ')} You lost ${d} health.`,'b2')}
+ else if(Math.min(S.o2,S.water,S.food,S.energy)<10){S.hp-=4;log(`Day ${S.day}: Supplies are almost gone! You lost 4 health.`,'b2')}
+ else{if(S.o2>25&&S.water>20&&S.food>20)add({hp:3});log(`Day ${S.day} was good!`,'g')}
+ if(S.crisis==2){toast('☠ ONE MORE DAY with an empty bar and life support FAILS!');log('☠ Warning: one more empty day and life support fails!','b2')}
+ if(S.storm){const sd=D.sh[Math.min(2,S.shield)];if(sd){S.hp-=sd;log(`🌪 The storm hurts you: -${sd} health.`,'b2')}
+ if(S.shield<2&&S.panels>1&&Math.random()<.5){S.panels--;log('🌪 Sand broke a sun panel!','b2')}
+ if(!S.shield&&S.farms&&Math.random()<.4){S.farms--;log('🌪 Sand broke a garden!','b2')}
+ if(D.sh[0]>5){add({water:-6});S.dust=true;toast('🌪 The storm is hurting your base!')}}
+ if(S.hp<=0)return end('dead');
+ if(S.crisis>=3&&!(S.day>=DAYS&&S.hull>=100&&S.fuel>=100&&S.cores>=3&&rpCount()>=3))return end('collapse');
+ {const r2=rates();S.idle=(S.energy<5&&r2.energy<=0&&!(S.parts>=2&&S.panels<6))?(S.idle||0)+1:0;
+  if(S.idle==1){toast('⚡ No power and no parts! If nothing changes, the game ends.');log('⚡ Warning: no power left. Build a sun panel or the base shuts down!','b2')}
+  if(S.idle>=2&&S.day<DAYS)return end('stuck')}
+ if(S.day>=DAYS)return end(S.hull>=100&&S.fuel>=100?(S.cores>=3?(rpCount()>=3?'win':'norp'):'core'):(S.hull>=100||S.fuel>=100)?'half':'fail');
+ S.day++;S.ap=D.ap+S.bonus+(S.ally?1:0);S.bonus=0;S.storm=STORM.includes(S.day)?1:0;daily();
+ if(S.storm)log('⚠ Big storm! Sun panels do not work well.','b2');
+ cine(S.day==8||S.day==18?'storm':S.day==14?'flare':'day',startDay)}
+function end(k){if(!S||S.over)return;S.over=true;try{localStorage.removeItem('m100s')}catch(e){}if(k=='win'||k=='alien'){unlock('win');if(k=='alien')unlock('alien');if(k=='win'&&S.diff=='hard')unlock('hard');if(k=='win'&&!S.hurt)unlock('nodmg')}render();const T={
+ win:['🚀 YOU DID IT!','The rocket zooms into the sky! {n}, you are going home! Great job!'],
+ half:['So close!','The rocket was almost ready. Time ran out. Try again!'],
+ fail:['Oh no!','The rocket was not ready. Try again, {n}!'],
+ core:['So close!','The rocket is ready, but it has no Nav Cores to steer home. Next time, explore and find 3 ⭐ Nav Cores!'],
+ dead:['Oh no!','{n} got too hurt. Try again! Watch Air, Water, Food and Power.'],
+ collapse:['☠ Life support failed!','Air, Water, Food or Power stayed at zero for 3 days in a row. The base shut down. Try again, {n}! Keep every bar above zero.'],
+ norp:['So close!','The rocket is ready, but it is missing special parts (⚙️ Engine, 🛡️ Heat Shield, 🔌 Guidance Chip). Watch the map for 🧩 signals!'],
+ alien:['👽 SECRET ENDING!','A ring of light lifts you off the sand. You wake in a quiet blue room. A kind voice says: "Welcome home, {n}. We have been waiting for you."'],
+ stuck:['⚡ Nothing left to do','There is no power and no way to get more. Nothing in the base works any more. Try again, {n}! Build sun panels ☀️ early and keep your power up.']}[k];
+ const show=()=>modal(T[0],T[1].replace('{n}',S.name)+`\n\nDay ${S.day} · Rocket fix ${S.hull} · Fuel ${S.fuel} · Cores ${S.cores}/3`+(k=='win'||k=='alien'||k=='dead'||k=='collapse'?'':'\n\nStill missing:\n'+(missing().join('\n')||'nothing')),[['Continue ▶',credits]]);
+ (k=='win'||k=='alien')?cine('win',show):(k=='half'||k=='fail'||k=='core'||k=='norp')?cine('stranded',show):show()}
+function modal(t,x,b,inp){$('#mt').textContent=t;$('#mx').textContent=x;const i=$('#in');i.style.display=inp?'block':'none';i.value='';
+ const mb=$('#mb');mb.innerHTML='';b.forEach(([l,f])=>{const e=document.createElement('button');e.textContent=l;e.onclick=()=>{if(inp&&!i.value.trim()){i.focus();return}const v=i.value;$('#md').style.display='none';f(v)};mb.appendChild(e)});
+ $('#md').style.display='flex';if(inp)i.focus()}
+function help(){modal('❓ How to play','You are alone on Mars! 🚀\n\n1. Drag a card from the bottom bar onto the Mars world. You get a few moves each day.\n2. Then press the orange button: GO TO NEXT DAY.\n3. Keep Air, Water, Food and Power above zero. If any bar is empty for 3 days in a row, you LOSE!\n4. Fix the rocket to 100, fill the fuel to 100 AND find 3 ⭐ Nav Cores and 3 🧩 rocket parts (⚙️ Engine, 🛡️ Heat Shield, 🔌 Chip) by exploring. Use 🔬 Research for upgrades. Something strange hides in the ruins...\n5. When everything is ready, press 🚀 LAUNCH NOW to fly home! On Day 21 press FINAL LAUNCH.\n\nRead the yellow words. They tell you what to do next!\n\nWHERE TO DROP\n🔧 Find parts → crashed ship\n🧊 Find water, 🛡️ Walls → Mars ground\n🌱 Garden, ☀️ Panel, ⛏️ Water maker → an empty spot on the ground\n🛠️ Fix rocket, 🚀 Fuel → the rocket\n🧹 Clean → a sun panel\n😴 Rest, 🔬 Research → your astronaut\n(Just TAP a card to auto-place it.)',[['Got it!',()=>{}]])}
+function askName(){$('#home').style.display='none';S=null;render();modal('MARS 100: GO HOME!','Hi! You crashed your spaceship on Mars. You are the only one here.\n\nYou have 21 days to fix the rocket and fly home.\n\nWhat is your name?',[['Start',n=>{newGame(n.replace(/[<>&"']/g,'').trim().slice(0,16));cine('launch',()=>{S.tut=1;startDay()})}]],true)}
+/* ---- UI ---- */
+function bar(l,v,c,r){return `<div class="b"><span>${l}</span><i style="--w:${Math.min(100,v)}%;--c:${c}"></i><em>${Math.round(v)}${r!=null?` <small class="${r<0?'n':'p'}">${r>0?'+':''}${r.toFixed(1)}</small>`:''}</em></div>`}
+function tip(){const s=S;if(s.over)return '';
+ if(!missing().length)return '🎉 Everything is ready! Press 🚀 LAUNCH NOW to go home!';
+ if(s.day>=DAYS)return '🚀 Last day! Finish the rocket, then press FINAL LAUNCH. Still missing: '+missing().join(', ');
+ if(s.energy<5&&rates().energy<=0&&!(s.parts>=2&&s.panels<6))return '⚡ No power and no parts! The game ends if this stays the same tomorrow.';
+ if(s.crisis>0){const z=[s.o2<=0&&'Air',s.water<=0&&'Water',s.food<=0&&'Food',s.energy<=0&&'Power'].filter(Boolean).join(' + ');return `☠ DANGER! ${z} is EMPTY! ${3-s.crisis} day(s) left before life support fails!`}
+ if(s.ap<=0)return '👉 No moves left. Press the orange button: GO TO NEXT DAY.';
+ if(A.every(a=>(a.h&&!a.h())||!a.ok()))return '😟 Nothing can be done right now. Press the orange button.';
+ if(s.o2<25)return '😮 Air is low! Build a garden 🌱 or find water 🧊.';
+ if(s.water<30)return '💧 Water is low! Drag Find water 🧊.';
+ if(s.food<30)return s.farms?'🍎 Food is low! Build more gardens 🌱.':'🍎 Food is low! Build a garden 🌱.';
+ if(s.energy<30)return s.dust?'⚡ Power is low! Drag Clean panels 🧹.':'⚡ Power is low! Build a sun panel ☀️.';
+ if(s.dust)return '🌫 Sand is on the panels. Drag Clean panels 🧹.';
+ if(s.hp<40)return '❤ You are hurt. Drag Rest 😴.';
+ if(s.day>=6&&s.day<8&&!s.shield)return '🌪 A big storm is coming! Build walls 🛡️.';
+ if(s.parts<3)return '🔧 You need parts. Drag Find parts.';
+ if(!s.farms)return '🌱 Build a garden. It makes food.';
+ if(s.ice&&!s.ext)return '⛏️ Build a water maker. It gives water every day.';
+ if(rpCount()<3&&s.poi.some(p=>p.k=='rpart'))return '🧩 A rocket part signal is on the map! Drag 🧭 Explore onto it.';
+ if(s.poi.some(p=>p.k=='gate'))return '🌀 An alien gate is on the map! Explore it... if you dare.';
+ if(s.cores<3&&s.poi.some(p=>p.core))return '⭐ A Nav Core site is on the map! Drag 🧭 Explore onto it.';
+ if(s.hull<100&&s.hull<=s.fuel)return '🛠️ Fix the rocket. Get to 100!';
+ if(s.fuel<100)return '🚀 Make fuel. Get to 100!';
+ return s.hull<100?'🛠️ Fix the rocket. Get to 100!':'🎉 Great! Keep going. You can go home soon!'}
+function render(){const ui=document.querySelectorAll('#ui,#hud');ui.forEach(e=>e.style.visibility=S?'visible':'hidden');if(!S)return;const r=rates();
+ $('#top').innerHTML=`<b>☄ MARS 100</b><span>Day ${S.day}/${DAYS}</span><span>👩‍🚀 ${S.name}</span><span>Moves left: ${S.ap}</span><button id="help">❓ How to play</button><button id="menu">🏠 Menu</button><button id="logb">📜 Log</button><span>🧩${rpI()} 🔬${Object.keys(S.tech).length}/5</span><span>⭐${S.cores}/3 ${S.ally?'🧑‍🚀':''}${S.gear?'🔦'+S.gear:''}</span><span>🌱${S.farms} ☀️${S.panels} ⛏️${S.ext} 🛡️${S.shield}${S.dust?' 🌫 sand':''}${S.storm?' ⚠ STORM!':''}${S.crisis?` <b style="color:#ff5a5a">☠ ${S.crisis}/3</b>`:''}</span>`;
+ $('#bars').innerHTML=bar('🫁 Air',S.o2,'#6ec6ff',r.o2)+bar('💧 Water',S.water,'#4a9eff',r.water)+bar('🍎 Food',S.food,'#7bd96b',r.food)+bar('⚡ Power',S.energy,'#ffd54a',r.energy)+bar('❤ Health',S.hp,'#ff6b6b')+bar('🔧 Parts',S.parts,'#bbb')+bar('🛠 Rocket fix',S.hull,'#d68cff')+bar('🚀 Fuel',S.fuel,'#ff9f5a');
+ 
+ $('#tip').innerHTML='<b>'+tip()+'</b><small>'+(S.log[0]?S.log[0][0]:'')+'</small>';$('#help').onclick=help;$('#logb').onclick=()=>modal('📜 Log',S.log.map(l=>l[0]).join('\n')||'Nothing yet.',[['Close',()=>{}]]);$('#menu').onclick=()=>modal('Leave the game?','Your game is saved. Press CONTINUE on the home screen to resume.',[['Keep playing',()=>{}],['🏳 Give up (see result)',()=>end('fail')],['🏠 Go to menu',intro]]);
+ $('#acts').innerHTML=A.map((a,i)=>(!a.h||a.h())?`<button class="card${S.ap>0&&a.ok()&&!S.over?'':' off'}" style="--c:${a.col}" data-i="${i}" title="${a.d}"><span class="ic">${a.i}</span><b>${a.n}</b><span class="ch"><em class="cs">${fxx(a.cost)}</em><em class="gn">${fxx(a.gain)}</em></span></button>`:'').join('')+(missing().length?'':`<button id="launchb" class="card end pulse" style="--c:#ffd54a">🚀 LAUNCH NOW — GO HOME!</button>`)+`<button id="end" class="card end ${S.ap<=0||S.day>=DAYS?'pulse':''}" style="--c:#ff8a3d">${S.day>=DAYS?'🚀 FINAL LAUNCH':'⏭ GO TO NEXT DAY'}</button>`;
+ $('#end').onclick=S.day>=DAYS?finale:endDay;if($('#launchb'))$('#launchb').onclick=finale;progress();tutUpd()}
+/* ---- MARS SCENE ---- */
+const cv=$('#cv'),g=cv.getContext('2d');let W,H,T=0,st=0;
+const P=Array.from({length:150},()=>({x:Math.random(),y:Math.random(),s:Math.random()*.7+.3}));
+function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight}addEventListener('resize',rs);rs();
+function draw(){T+=.016;st+=((S&&S.storm?1:0)-st)*.02;const hz=H*.32,gy=H*.42,k=Math.max(.6,Math.min(1.2,W/1000));
+ let gr=g.createLinearGradient(0,0,0,hz);gr.addColorStop(0,'#2a1428');gr.addColorStop(.6,'#a8502f');gr.addColorStop(1,'#eaa064');g.fillStyle=gr;g.fillRect(0,0,W,hz+2);
+ g.fillStyle='#fff';P.slice(0,60).forEach(p=>{g.globalAlpha=(1-st)*.6*(.5+.5*Math.sin(T*p.s*3+p.x*9));g.fillRect(p.x*W,p.y*hz*.6,1.5,1.5)});g.globalAlpha=1;
+ const sx=W*.78,sy=hz*.5;gr=g.createRadialGradient(sx,sy,2,sx,sy,60);gr.addColorStop(0,'#fff');gr.addColorStop(.2,'#cfe6ff');gr.addColorStop(1,'#cfe6ff00');g.fillStyle=gr;g.fillRect(sx-60,sy-60,120,120);
+ [[.9,'#7a3a2a',34,.004],[.6,'#5e2a1e',22,.007]].forEach(([a,c,h,f],j)=>{g.fillStyle=c;g.beginPath();g.moveTo(0,hz+4);for(let x=0;x<=W;x+=16)g.lineTo(x,hz-h*(.5+.5*Math.sin(x*f+j*2)+.4*Math.sin(x*f*2.7+j))-6);g.lineTo(W,hz+4);g.fill()});
+ gr=g.createLinearGradient(0,hz,0,H);gr.addColorStop(0,'#c0602f');gr.addColorStop(1,'#5e2412');g.fillStyle=gr;g.fillRect(0,hz,W,H-hz);
+ g.fillStyle='#a44a25';g.beginPath();g.moveTo(0,H);for(let x=0;x<=W;x+=14)g.lineTo(x,hz+(gy-hz)*.9+10*Math.sin(x*.01+1)+6*Math.sin(x*.027));g.lineTo(W,H);g.fill();
+ // crashed ship
+ g.save();g.translate(W*.14,gy+8);g.scale(k,k);g.rotate(-.22);g.fillStyle='#d8d8e2';g.beginPath();g.roundRect(-62,-20,110,40,10);g.fill();g.fillStyle='#b8b8c6';g.beginPath();g.moveTo(48,-20);g.lineTo(78,0);g.lineTo(48,20);g.fill();g.fillStyle='#45b0ff';[-40,-20,0].forEach(x=>g.fillRect(x,-8,12,10));g.fillStyle='#333';g.fillRect(-62,-6,12,12);g.restore();
+ for(let i=0;i<7;i++){const a=(T*.3+i/7)%1;g.fillStyle=`rgba(60,45,40,${.5*(1-a)})`;g.beginPath();g.arc(W*.14+Math.sin(a*6+i)*12*k,gy-10-a*90*k,(8+a*22)*k,0,7);g.fill()}
+ if(S){const bx=W*.34;
+  // astronaut
+  g.save();g.translate(bx,gy+4+Math.sin(T*3)*1.5);g.scale(k,k);g.fillStyle='#f4f4f8';g.beginPath();g.roundRect(-9,-26,18,26,5);g.fill();g.beginPath();g.arc(0,-32,9,0,7);g.fill();g.fillStyle='#ff9b3d';g.beginPath();g.arc(2,-32,5.5,0,7);g.fill();g.restore();
+  for(let i=0;i<S.farms;i++){const x=W*.42+i*(48*k);g.save();g.translate(x,gy+14);g.scale(k,k);g.fillStyle='#4fd07a55';g.strokeStyle='#bff5cc';g.beginPath();g.arc(0,0,22,Math.PI,0);g.fill();g.stroke();g.fillStyle='#4fd07a';g.fillRect(-6,-9,3,9);g.fillRect(3,-12,3,12);g.restore()}
+  for(let i=0;i<S.panels;i++){const x=W*.7+i*(30*k);g.save();g.translate(x,gy+18);g.scale(k,k);g.fillStyle='#777';g.fillRect(-1,-4,3,14);g.fillStyle=S.dust?'#b5784f':'#2f6fd0';g.beginPath();g.moveTo(-14,-4);g.lineTo(14,-4);g.lineTo(10,-18);g.lineTo(-10,-18);g.fill();g.restore()}
+  for(let i=0;i<S.ext;i++){const x=W*.5+i*(26*k);g.save();g.translate(x,gy+34);g.scale(k,k);g.fillStyle='#9aa';g.fillRect(-5,-30,10,30);g.fillStyle=Math.sin(T*4+i)>0?'#6ef':'#245';g.fillRect(-3,-34,6,5);g.restore()}
+  if(S.shield){g.strokeStyle=`rgba(120,200,255,${.25+.1*S.shield})`;g.setLineDash([8,6]);g.lineWidth=2;g.beginPath();g.ellipse(W*.52,gy+20,W*.24,H*.1,0,Math.PI,0);g.stroke();g.setLineDash([]);g.lineWidth=1}}
+ // wind dust
+ g.strokeStyle='rgba(255,200,150,.35)';P.forEach(p=>{p.x+=(.0006+st*.01)*p.s;if(p.x>1.05){p.x=-.05;p.y=Math.random()}const x=p.x*W,y=hz*.6+p.y*(H-hz*.6);g.beginPath();g.moveTo(x,y);g.lineTo(x-(4+st*40)*p.s,y+1);g.stroke()});
+ if(st>.01){g.fillStyle=`rgba(165,85,45,${st*.15})`;g.fillRect(0,0,W,H)}
+ requestAnimationFrame(draw)}
+
+/* ---- CINEMATICS ---- */
+const cs=$('#cs'),cx=cs.getContext('2d');let CI=null;
+const cl01=x=>Math.max(0,Math.min(1,x)),ez=x=>x*x*(3-2*x),rn=i=>{const x=Math.sin(i*127.1)*43758.5;return x-Math.floor(x)};
+const skyG=(c,W,H,a,b)=>{const q=c.createLinearGradient(0,0,0,H);q.addColorStop(0,a);q.addColorStop(1,b);c.fillStyle=q;c.fillRect(0,0,W,H)};
+const U=(W,H)=>Math.min(W,H*1.4)/700;
+function starsC(c,W,H,t,a=1,dy=0){c.fillStyle='#fff';for(let i=0;i<130;i++){c.globalAlpha=a*(.3+.7*rn(i+5)*(.6+.4*Math.sin(t*2+i)));c.fillRect(rn(i)*W,((rn(i+300)*H+dy)%H+H)%H,1.8,1.8)}c.globalAlpha=1}
+function planetC(c,x,y,r,e){const q=c.createRadialGradient(x-r*.3,y-r*.3,r*.1,x,y,r);if(e){q.addColorStop(0,'#9ad7ff');q.addColorStop(.6,'#2a6fd6');q.addColorStop(1,'#0b2a66')}else{q.addColorStop(0,'#ffb37a');q.addColorStop(.6,'#c4572d');q.addColorStop(1,'#4a1a0e')}
+ c.fillStyle=q;c.beginPath();c.arc(x,y,r,0,7);c.fill();c.save();c.beginPath();c.arc(x,y,r,0,7);c.clip();c.fillStyle=e?'#4fbf6a':'#8e3418';c.globalAlpha=.75;[[-.3,-.1,.3,.2,.5],[.35,.3,.22,.14,-.4],[-.1,.5,.2,.12,.2]].forEach(([a,b,w,h,q2])=>{c.beginPath();c.ellipse(x+a*r,y+b*r,w*r,h*r,q2,0,7);c.fill()});c.restore();c.globalAlpha=1}
+function rkt(c,x,y,s,rot,fl){c.save();c.translate(x,y);c.rotate(rot||0);c.scale(s,s);
+ if(fl){const f=fl*(.8+.4*Math.random());c.fillStyle='#ff9d2e';c.beginPath();c.moveTo(-9,22);c.lineTo(0,22+50*f);c.lineTo(9,22);c.fill();c.fillStyle='#ffe27a';c.beginPath();c.moveTo(-5,22);c.lineTo(0,22+28*f);c.lineTo(5,22);c.fill()}
+ c.fillStyle='#e8e8f0';c.beginPath();c.moveTo(0,-40);c.quadraticCurveTo(16,-15,14,22);c.lineTo(-14,22);c.quadraticCurveTo(-16,-15,0,-40);c.fill();
+ c.fillStyle='#ff5a4d';c.beginPath();c.moveTo(0,-40);c.quadraticCurveTo(9,-30,10,-22);c.lineTo(-10,-22);c.quadraticCurveTo(-9,-30,0,-40);c.fill();
+ c.fillStyle='#45b0ff';c.beginPath();c.arc(0,-6,6,0,7);c.fill();c.fillStyle='#ff5a4d';
+ c.beginPath();c.moveTo(-14,8);c.lineTo(-24,26);c.lineTo(-14,22);c.fill();c.beginPath();c.moveTo(14,8);c.lineTo(24,26);c.lineTo(14,22);c.fill();c.restore()}
+function smoke(c,x,y,t,n,u,col,rise){for(let i=0;i<n;i++){const a=cl01((t-i*.07)/1.6);if(a<=0)continue;c.fillStyle=col+(.55*(1-a))+')';c.beginPath();c.arc(x+(i%2?1:-1)*(a*150*(rise?.2:1)+rn(i)*30)*u,y-(rise?a*170:a*30)*u,(10+a*38)*u,0,7);c.fill()}}
+function fade(c,W,H,t,tc,w){const a=1-Math.abs(t-tc)/w;if(a>0){c.fillStyle=`rgba(0,0,0,${a})`;c.fillRect(0,0,W,H)}}
+function pad(c,W,H,t,mars){const u=U(W,H),gy=H*.8,lift=Math.max(0,t-3),dk=cl01((t-3)/1.5),s=2.2*u;
+ mars?skyG(c,W,H,'#2a1428','#e0803f'):skyG(c,W,H,'#4aa3ff','#bfe6ff');starsC(c,W,H,t,dk);c.fillStyle=`rgba(5,5,25,${dk*.85})`;c.fillRect(0,0,W,H);
+ c.fillStyle=mars?'#a44a25':'#3c8c4a';c.fillRect(0,gy,W,H-gy);c.fillStyle='#777';c.fillRect(W/2-70*u,gy-6*u,140*u,12*u);
+ if(t>2.6)smoke(c,W/2,gy-10*u,t-2.6,16,u,mars?'rgba(217,160,122,':'rgba(225,225,225,');
+ rkt(c,W/2+(t>1.5&&t<3?(Math.random()-.5)*3:0),gy-6*u-22*s-lift*lift*H*.2,s,0,t>2.8?cl01((t-2.8)*3):0)}
+function space(c,W,H,t,p,eDep,warn){const u=U(W,H);skyG(c,W,H,'#02020c','#0a0a2a');starsC(c,W,H,t,1,t*40);
+ planetC(c,W*.18,H*.86,H*.5*(1-ez(p))+H*.05,eDep);planetC(c,W*.82,H*.28,H*.05+H*.3*ez(p),!eDep);
+ rkt(c,W*.5+(warn?(Math.random()-.5)*5:Math.sin(t*2)*6),H*.5,2.2*u,1,1);
+ if(warn){c.fillStyle=`rgba(255,0,0,${.14+.1*Math.sin(t*12)})`;c.fillRect(0,0,W,H)}}
+function crash(c,W,H,t){const u=U(W,H),gy=H*.8,p=cl01((t-.3)/2.9);skyG(c,W,H,'#2a1428','#e0803f');starsC(c,W,H,t,.5);c.fillStyle='#a44a25';c.fillRect(0,gy,W,H-gy);
+ if(p<1){const x=W*.5+(1-p)*W*.2,y=-60*u+(gy-10*u)*p*p;for(let i=0;i<8;i++){c.fillStyle=`rgba(255,${110+i*18},40,${.55-i*.06})`;c.beginPath();c.arc(x+Math.sin(i+t*10)*6*u,y-(i*16+10)*u,(28-i*3)*u,0,7);c.fill()}rkt(c,x,y,2*u,t*4*(1-p)+1.3*p,.8)}
+ else{const tt=t-3.2;rkt(c,W/2,gy-10*u,2*u,1.3,0);for(let i=0;i<8;i++){const a=(tt*.4+i/8)%1;c.fillStyle=`rgba(50,40,40,${.5*(1-a)})`;c.beginPath();c.arc(W/2+10*u+Math.sin(a*5+i)*14*u,gy-30*u-a*170*u,(10+a*30)*u,0,7);c.fill()}
+  if(tt<.6){c.fillStyle=`rgba(255,255,255,${1-tt/.6})`;c.fillRect(0,0,W,H)}}}
+function land(c,W,H,t){const u=U(W,H),gy=H*.82,s=2.2*u,p=cl01(t/3.6);skyG(c,W,H,'#2f86e8','#cfeeff');
+ c.fillStyle='#fffc';for(let i=0;i<5;i++){c.beginPath();c.ellipse(((rn(i)*W+t*20*(i+1))%(W+240))-120,H*.1+i*H*.09,70*u,18*u,0,0,7);c.fill()}
+ c.fillStyle='#3c8c4a';c.fillRect(0,gy,W,H-gy);c.fillStyle='#e8d9c4';[.1,.2,.8,.9].forEach((x,i)=>{c.fillRect(W*x,gy-26*u,40*u,26*u);c.fillStyle='#c0483a';c.beginPath();c.moveTo(W*x-4*u,gy-26*u);c.lineTo(W*x+20*u,gy-46*u);c.lineTo(W*x+44*u,gy-26*u);c.fill();c.fillStyle='#e8d9c4'});
+ rkt(c,W/2,-60*u+(gy-22*s+60*u)*ez(p),s,0,p<.97?.3+.7*p:0);
+ if(t>3.6)for(let i=0;i<90;i++){c.fillStyle=`hsl(${rn(i+7)*360},90%,60%)`;c.fillRect(rn(i)*W+Math.sin(t*3+i)*20,((t-3.6)*(140+rn(i+9)*160)+rn(i+50)*H)%H,7,10)}}
+function sparkle(c,x,y,r,col){c.fillStyle=col;c.beginPath();for(let k=0;k<8;k++){const a=k*Math.PI/4,rr=k%2?r*.25:r;c.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr)}c.fill()}
+function mile(c,W,H,t,col,fl){const u=U(W,H),gy=H*.78;skyG(c,W,H,'#7a3a5a','#f0a066');c.fillStyle='#a44a25';c.fillRect(0,gy,W,H-gy);
+ const cxp=W/2,cyp=gy-70*u*2.2/2.2-Math.sin(t*3)*5*u,q=c.createRadialGradient(cxp,cyp,10,cxp,cyp,200*u);q.addColorStop(0,col+'aa');q.addColorStop(1,col+'00');c.fillStyle=q;c.fillRect(0,0,W,H);
+ rkt(c,cxp,cyp,2.6*u,0,fl);for(let i=0;i<14;i++)sparkle(c,cxp+Math.cos(i*.45+t)*(120+(i%3)*40)*u,cyp+Math.sin(i*.45+t)*(100+(i%3)*30)*u,(8+6*Math.sin(t*5+i))*u,col)}
+function dayS(c,W,H,t){const u=U(W,H),p=cl01(t/1.5),gy=H*.7;c.fillStyle='#10061a';c.fillRect(0,0,W,H);starsC(c,W,H,t,1-p);c.globalAlpha=p;skyG(c,W,H,'#6a3050','#f0a066');c.globalAlpha=1;
+ c.fillStyle='#ffe9a8';c.beginPath();c.arc(W*.5,gy+30*u-p*H*.3,38*u,0,7);c.fill();c.fillStyle='#4a1a10';c.fillRect(0,gy,W,H-gy);c.fillRect(W*.3,gy-18*u,60*u,18*u);rkt(c,W*.7,gy-24*u,1.1*u,0,0)}
+function stormS(c,W,H,t){const u=U(W,H),gy=H*.72;skyG(c,W,H,'#3a1a10','#b0623a');c.fillStyle='#6a2a14';c.fillRect(0,gy,W,H-gy);c.fillStyle='#3a1a10';c.beginPath();c.arc(W*.4,gy,30*u,Math.PI,0);c.fill();c.fillRect(W*.6,gy-10*u,50*u,10*u);
+ c.strokeStyle='rgba(255,200,150,.55)';for(let i=0;i<110;i++){const x=((rn(i)*W+t*(500+rn(i+2)*700))%(W+200))-100,y=rn(i+40)*H;c.beginPath();c.moveTo(x,y);c.lineTo(x-40-rn(i)*60,y+4);c.stroke()}
+ c.fillStyle=`rgba(150,80,40,${.25+.15*Math.sin(t*3)})`;c.fillRect(0,0,W,H);if(rn(Math.floor(t*5))>.8){c.fillStyle='rgba(255,255,255,.45)';c.fillRect(0,0,W,H)}}
+function flareS(c,W,H,t){const u=U(W,H);skyG(c,W,H,'#ffefb0','#ff8a3d');const x=W/2,y=H*.4,r=(60+t*40)*u;c.strokeStyle='#fff8';c.lineWidth=5*u;for(let i=0;i<16;i++){const a=i*Math.PI/8+t;c.beginPath();c.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r);c.lineTo(x+Math.cos(a)*r*1.8,y+Math.sin(a)*r*1.8);c.stroke()}
+ c.fillStyle='#fff';c.beginPath();c.arc(x,y,r,0,7);c.fill();c.lineWidth=1;if(t>1&&t<1.5){c.fillStyle=`rgba(255,255,255,${1-Math.abs(t-1.25)*4})`;c.fillRect(0,0,W,H)}}
+function lonely(c,W,H,t){const u=U(W,H),gy=H*.78;skyG(c,W,H,'#05030c','#3a1a28');starsC(c,W,H,t);planetC(c,W*.75,H*.22,H*.07*(1-t/18),true);c.fillStyle='#7a3a22';c.fillRect(0,gy,W,H-gy);rkt(c,W*.4,gy-40*u,2*u,0,0)}
+const CD=[[.6,'3...'],[1.4,'2...'],[2.2,'1...'],[3,'BLAST OFF! 🚀']];
+const SC={
+launch:{d:14,draw(c,W,H,t){t<4.5?pad(c,W,H,t,0):t<9?space(c,W,H,t,(t-4.5)/4.5,1,t>7):crash(c,W,H,t-9);fade(c,W,H,t,4.5,.4);fade(c,W,H,t,9,.4)},cap:[[0,'Mission to Mars! 🚀'],...CD,[4.7,'Flying to Mars... 🪐'],[7,'Oh no! Something is wrong! 😱'],[9.2,'The rocket is falling!'],[12.3,'CRASH! 💥'],[13,'You are alone on Mars...']]},
+win:{d:15,draw(c,W,H,t){t<4.5?pad(c,W,H,t,1):t<9.5?space(c,W,H,t,(t-4.5)/5,0,0):land(c,W,H,t-9.5);fade(c,W,H,t,4.5,.4);fade(c,W,H,t,9.5,.4)},cap:[[0,'The rocket is ready! 🛠️'],...CD,[4.7,'Flying home to Earth... 🌍'],[9.8,'Landing...'],[13.2,()=>`Welcome home, ${S.name}! 🎉`]]},
+stranded:{d:8,draw:lonely,cap:[[0,'The time ran out...'],[3,'Earth is far away... 🌍'],[5.5,'Try again. You can do it!']]},
+credits:{d:9.5,draw:credS,cap:[]},
+fixed:{d:3.5,draw:(c,W,H,t)=>mile(c,W,H,t,'#ffe08a',0),cap:[[0,'The rocket is FIXED! 🛠️✨']]},
+fueled:{d:3.5,draw:(c,W,H,t)=>mile(c,W,H,t,'#6fff9a',.3),cap:[[0,'The fuel tank is FULL! ⛽🚀']]},
+day:{d:1.6,draw:dayS,cap:[[0,()=>'☀️ Day '+S.day]]},
+storm:{d:3.8,draw:stormS,cap:[[0,'A big sand storm! 🌪️'],[2,'Stay strong! 💪']]},
+flare:{d:2.6,draw:flareS,cap:[[0,'The sun is so bright! ☀️'],[1.3,'ZAP! ⚡']]}};
+function cine(k,done){if(CI||(k!='credits'&&!ST.cut)){done&&done();return}cs.width=innerWidth;cs.height=innerHeight;CI={t0:performance.now(),sc:SC[k],done};['#cs','#cap','#skip'].forEach(s=>$(s).style.display='block');requestAnimationFrame(cLoop)}
+function cLoop(now){if(!CI)return;const t=(now-CI.t0)/1000,sc=CI.sc;if(t>=sc.d)return endCine();sc.draw(cx,cs.width,cs.height,t);const q=sc.cap.filter(x=>t>=x[0]).pop();$('#cap').textContent=q?(typeof q[1]=='function'?q[1]():q[1]):'';requestAnimationFrame(cLoop)}
+function endCine(){if(!CI)return;const d=CI.done;CI=null;['#cs','#cap','#skip'].forEach(s=>$(s).style.display='none');d&&d()}
+$('#skip').onclick=endCine;cs.onclick=endCine;
+
+function credS(c,W,H,t){const u=U(W,H);skyG(c,W,H,'#02020c','#1a0a2a');starsC(c,W,H,t,1,t*15);planetC(c,W*.15,H*.8,H*.18,1);planetC(c,W*.88,H*.2,H*.1,0);
+ rkt(c,((t*90)%(W+120))-60,H*.9-Math.sin(t*2)*8,1.2*u,1.57,1);c.textAlign='center';c.textBaseline='middle';
+ [[.5,'THANKS FOR PLAYING!',.28,34,'#ffe9d6'],[3,'Developed by',.43,24,'#e8b99a'],[4,'Team Ra.One',.55,70,'#ff8a3d'],[5.5,'Aman Singh  &  Isha Mande',.69,38,'#ffe9d6']].forEach(([s,x,y,z,col])=>{c.globalAlpha=cl01((t-s)/.8);c.fillStyle=col;c.font=`800 ${z*u*.8}px system-ui,sans-serif`;c.fillText(x,W/2,H*y)});c.globalAlpha=1}
+function credits(){cine('credits',()=>modal('Thanks for playing! 🚀','Developed by\nTeam Ra.One\nAman Singh & Isha Mande',[['▶ Play again',askName],['🏠 Home',intro]]))}
+function mishap(){if(Math.random()>D.mi+.25+S.day*.01||S.day<3)return;const r=R(0,5);let m;
+ if(r==0){const n=Math.min(S.parts,R(1,3));add({parts:-n});m=`☄️ A space rock hit the base! You lost ${n} parts.`}
+ else if(r==1){add({water:-R(8,15)});m='💧 A tiny leak! You lost some water.'}
+ else if(r==2){add({energy:-R(8,15)});m='⚡ A machine broke! You lost some power.'}
+ else if(r==3){add({food:-R(6,12)});m='🍎 Some food went bad! You lost food.'}
+ else if(r==4){add({hull:-6});m='☄️ A rock dented the rocket! Fix −6.'}
+ else{if(S.panels>1)S.panels--;m='🔩 A sun panel cracked and broke!'}
+ log(m,'b2');toast(m)}
+function intro(){S=null;render();$('#home').style.display='flex';$('#home').scrollTop=0;$('#tut').style.display='none';$('#hc').style.display=hasSave()?'inline-block':'none'}
+function settings(){const nx={easy:'normal',normal:'hard',hard:'easy'},nm={easy:'😊 Easy',normal:'🙂 Normal',hard:'😤 Hard'};
+ modal('⚙ Settings','Pick how hard the game is. Hard has stronger storms and fewer supplies. A new difficulty starts with your next game.',[['Difficulty: '+nm[ST.diff]+'  (tap to change)',()=>{ST.diff=nx[ST.diff]||'normal';sv();settings()}],['Sound: '+(ST.snd?'🔊 On':'🔇 Off'),()=>{ST.snd=!ST.snd;sv();if(ST.snd)aud();settings()}],['Movies (cutscenes): '+(ST.cut?'✅ On':'⛔ Off'),()=>{ST.cut=!ST.cut;sv();settings()}],['⬅ Back',()=>{}]])}
+function info(){modal('ℹ Info','GOAL\nFix the rocket to 100, fill the fuel to 100 and find 3 Nav Cores and 3 rocket parts before Day 21. Study the ruins for a secret. Drag Explore onto glowing markers on the map for adventures! When everything is ready, press LAUNCH NOW.\n\nHOW TO PLAY\nDrag the cards onto the world. Then press GO TO NEXT DAY.\n\nKEEP ABOVE ZERO\nAir, Water, Food and Power. Empty for 3 days = life support fails. Health 0 = you lose.\n\nYOU LOSE IF\n❤ Health reaches 0\n☠ Any bar stays empty 3 days\n⏰ The rocket is not ready by Day 21\n\nTIPS\nGardens make food but drink water and use power. Water makers need power. Build walls before the big storm!\n\nDeveloped by Team Ra.One\nAman Singh & Isha Mande',[['⬅ Back',()=>{}]])}
+$('#hp').onclick=$('#hp2').onclick=$('#hp3').onclick=()=>askName();document.querySelectorAll('#home nav a').forEach(a=>a.onclick=()=>$('#'+a.dataset.s).scrollIntoView({behavior:'smooth'}));$('#hc').onclick=resume;$('#ha').onclick=achList;$('#hs').onclick=settings;$('#hi').onclick=info;
+
+/* ---- ADVENTURES ---- */
+let PID=0,TP=0,KP=0;const ICO={cave:'🕳️',probe:'🛰️',ruin:'🏛️',ice:'🧊',stranded:'🧑‍🚀',rpart:'🧩',gate:'🌀'};
+const roll=b=>Math.random()<Math.min(.95,b+S.gear*.08+(S.ally?.07:0)+(S.hp<40?-.12:0));
+const ADV={
+cave:['🕳️ Dark Cave','A deep cave glitters with ice and metal. Something echoes inside...',[['Go deep (risky, big reward)',()=>roll(.55)?(add({parts:6,water:15}),'Jackpot! +6 parts, +15 water.'):(add({hp:-22}),'Rockfall! You lose 22 health.')],['Peek inside (safe)',()=>{add({parts:2,water:6});return '+2 parts, +6 water.'}]]],
+probe:['🛰️ Crashed Probe','An old probe lies in the sand. It still hums with power.',[['Salvage everything',()=>roll(.6)?(add({parts:4,energy:15}),'Great haul! +4 parts, +15 power.'+(Math.random()<.4?grantRP():'')):(add({parts:1,hp:-12}),'Sparks! +1 part, −12 health.')],['Take only the battery',()=>{add({energy:20});return '+20 power.'}]]],
+ruin:['🏛️ Ancient Ruin','Glowing glyphs cover the walls. A strange stone hums in the middle.',[['Touch the stone',()=>{const r=R(0,3);if(r==0){S.gear++;return '🔦 A scanner! Gear +1 (better odds).'}if(r==1){add({hp:-18});return 'ZAP! −18 health.'}if(r==2){add({fuel:12});return '🚀 Free fuel! +12.'}add({food:15,water:15});return 'A hidden store! +15 food, +15 water.'}],['Study the glyphs (−4 power, alien clue)',()=>{add({energy:-4});if(S.clue>=3)return 'You already know its secret. The gate is on the map.';S.clue++;S.gear++;if(S.clue==1)return '👽 The glyphs show a door among the stars. Clue 1/3. 🔦 Gear +1.';if(S.clue==2)return '👽 They show a ship like yours, leaving through a ring of light. Clue 2/3. 🔦 Gear +1.';spawnPoi(1,'gate');toast('🌀 An alien gate appeared on the map!');return '👽 The glyphs form a MAP! A glowing 🌀 gate appeared! Clue 3/3.'}]]],
+rpart:['🧩 Rocket Part Signal','Something metal is half-buried in the sand. It looks like a real rocket part!',[['Extract carefully (−6 power, 80%)',()=>{add({energy:-6});if(roll(.8))return 'Got it!'+grantRP();KP=1;return 'It slipped back under the sand. Try again later.'}],['Pry it out fast (55%, −12 health if it fails)',()=>{if(roll(.55))return 'Crack! It came out.'+grantRP();add({hp:-12});KP=1;return 'It snapped loose and hit you! −12 health.'}],['Come back later',()=>{KP=1;return 'You mark the spot.'}]]],
+gate:['🌀 The Alien Gate','A ring of light hums above the sand. The glyphs say it leads HOME... or somewhere else.',[['Step into the light (SECRET ENDING)',()=>{setTimeout(()=>end('alien'),80);return 'You step forward...'}],['Take the glowing artifact (+30 fix, +30 fuel, −15 health)',()=>{add({hull:30,fuel:30,hp:-15});return '⚡ The artifact boosts your rocket! +30 fix, +30 fuel.'}],['Leave it for now',()=>{KP=1;return 'The gate waits.'}]]],
+ice:['🧊 Ice Field','A huge sheet of clean ice. The wind is picking up.',[['Drill deep (storm risk)',()=>roll(.6)?(add({water:30}),'+30 water!'):(add({water:8,hp:-15}),'A gust hit you! +8 water, −15 health.')],['Chip a little',()=>{add({water:14});return '+14 water.'}]]],
+stranded:['🧑‍🚀 Stranded Astronaut','A friendly astronaut from an old mission! They want to join you.',[['Take them in (−12 food, +1 move/day forever, eats food daily)',()=>{S.ally=true;add({food:-12});return '🧑‍🚀 A new friend! +1 move every day.'}],['Share supplies and go on (+6 health)',()=>{add({food:-4,hp:6});return 'You shared a meal. +6 health.'}]]],
+core:['⭐ Nav Core Site','A glowing Navigation Core is buried here. The ground looks shaky!',[['Dig carefully (−10 power, 75%)',()=>{add({energy:-10});if(roll(.75)){S.cores++;return `⭐ NAV CORE FOUND! (${S.cores}/3)`}add({hp:-10});KP=1;return 'The ground collapsed! No core. −10 health. The spot is still there, try again.'}],['Blast it open (50%, hurts if it fails)',()=>{if(roll(.5)){S.cores++;return `💥⭐ NAV CORE! (${S.cores}/3)`}add({hp:-20});KP=1;return 'BOOM! The core did not come out. −20 health. Try again.'}],['Come back later',()=>{KP=1;return 'You mark the spot and head back.'}]]]};
+function adv(p){if(!S||S.over||!p)return;const K=ADV[p.k];KP=0;modal(K[0],K[1],K[2].map(([l,f])=>[l,()=>{const m=f();if(!KP)S.poi=S.poi.filter(q=>q!==p);log(m,'s');toast(m);if(S.hp<=0)return end('dead');render()}]))}
+function spawnPoi(core,kind){const ks=['cave','probe','ruin','ice'];if(S.day>=3&&!S.ally&&!S.poi.some(p=>p.k=='stranded')&&Math.random()<.3)ks.push('stranded','stranded');
+ const kk=kind||(core?'core':ks[R(0,ks.length-1)]);for(let t=0;t<40;t++){const a=Math.random()*6.28,r=14+Math.random()*20,p={x:Math.cos(a)*r,z:Math.sin(a)*r};if(okSpot(p)&&S.poi.every(q=>Math.hypot(q.x-p.x,q.z-p.z)>8)){S.poi.push({id:++PID,k:kk,core:kk=='core',born:S.day,x:p.x,z:p.z});return}}const f=freeSpot();if(f)S.poi.push({id:++PID,k:kk,core:kk=='core',born:S.day,x:f.x,z:f.z})}
+function daily(){const n=S.poi.length;S.poi=S.poi.filter(p=>p.core||p.k=='rpart'||p.k=='gate'||S.day-p.born<4);if(S.poi.length<n)log('🌪 Sand buried some markers on the map.','b2');
+ if([3,7,11,15,18].includes(S.day)){spawnPoi(1);log('⭐ A Nav Core signal appeared on the map!','s');toast('⭐ Nav Core signal on the map!')}
+ if([4,9,13,16].includes(S.day)&&rpCount()<3){spawnPoi(0,'rpart');log('🧩 A rocket part signal appeared!','s');toast('🧩 Rocket part signal on the map!')}
+ if([5,9,13].includes(S.day)&&S.clue<3)spawnPoi(0,'ruin');
+ if(S.poi.filter(p=>!p.core).length<3&&S.poi.length<7)spawnPoi(0)}
+/* ---- LAUNCH / TAP ---- */
+function tapAct(i){if(!S||S.over)return;const a=A[i];if(S.ap<=0)return toast('No moves left today. Press the orange button.');if(!a.ok())return toast(`${a.n}: not enough supplies right now.`);TP=Math.max(0,S.poi.findIndex(p=>p.core||p.k=='rpart'));act(i)}
+function finale(){if(!S||S.over||$('#md').style.display=='flex')return;const ms=missing();
+ if(!ms.length)return end('win');
+ if(S.day<DAYS)return;
+ modal('🚀 The rocket is not ready!','Still missing:\n'+ms.join('\n')+'\n\nKeep working with your moves today, or launch anyway.',[['🔧 Keep working',()=>{}],['🚀 Launch anyway',()=>endDay()]])}
+/* ---- DRAG & DROP ---- */
+let G3=null,dg=null;
+const slot=(k,i)=>k=='farms'?[-11+i*4.4,9]:k=='panels'?[-12+i*4.6,-13]:[21,-8+i*4];
+const pos=(k,i)=>{const p=S.pos&&S.pos[k][i];return p?[p.x,p.z]:slot(k,i)};
+function okSpot(p){if(Math.hypot(p.x,p.z)>60)return false;for(const[x,z,r]of[[15,-4,7],[-17,-8,6.5],[-3,5,3.5]])if(Math.hypot(p.x-x,p.z-z)<r)return false;
+ for(const k of['farms','panels','ext'])for(let i=0;i<S[k];i++){const[x,z]=pos(k,i);if(Math.hypot(p.x-x,p.z-z)<3.8)return false}return true}
+function freeSpot(){for(let r=9;r<=45;r+=4)for(let a=0;a<6.28;a+=.45){const p={x:Math.cos(a)*r,z:Math.sin(a)*r};if(okSpot(p))return p}return null}
+const hit=(a,h)=>a.t=='ground'?!!h.pt:a.t=='spot'?!!(h.pt&&okSpot(h.pt)):!!h[a.t];
+const WHERE={poi:'a glowing marker on the map',wreck:'the crashed ship',ground:'the Mars ground',spot:'an empty spot on the ground',rocket:'the rocket on the launch pad',panel:'a sun panel',self:'your astronaut'};
+const gh=document.createElement('div');gh.id='gh';document.body.appendChild(gh);
+function dEnd(){if(G3)G3.hint(null);gh.style.display='none';dg=null}
+$('#acts').addEventListener('pointerdown',e=>{const c=e.target.closest('.card[data-i]');if(!c||!S||S.over)return;dg={i:+c.dataset.i,x:e.clientX,y:e.clientY,on:false,c}});
+addEventListener('pointermove',e=>{if(!dg||!G3)return;const a=A[dg.i];
+ if(!dg.on){if(Math.hypot(e.clientX-dg.x,e.clientY-dg.y)<10||dg.c.classList.contains('off'))return;dg.on=true;gh.textContent=a.i;gh.style.setProperty('--c',a.col);gh.style.display='grid'}
+ gh.style.left=e.clientX+'px';gh.style.top=e.clientY+'px';G3.hint(a,e.clientX,e.clientY,hit(a,G3.pick(e.clientX,e.clientY)))});
+addEventListener('pointerup',e=>{if(!dg)return;const d=dg,a=A[d.i],on=d.on;dEnd();
+ if(!on||!G3){tapAct(d.i);return}
+ const el=document.elementFromPoint(e.clientX,e.clientY);if(el&&el.closest('#ui,#hud,#md'))return;
+ const h=G3.pick(e.clientX,e.clientY);if(!hit(a,h)){toast(`Drop ${a.n} on ${WHERE[a.t]}`+(a.t=='spot'&&h.pt?' (too close to something!)':''));return}
+ TP=(h.poi||1)-1;act(d.i,a.t=='spot'?h.pt:null)});
+addEventListener('pointercancel',dEnd);
+
+/* ---- 3D WORLD (three.js) ---- */
+let R3=null;try{R3=new THREE.WebGLRenderer({canvas:$('#gl'),antialias:true})}catch(e){}
+function init3D(){const GL=THREE;R3.setPixelRatio(Math.min(devicePixelRatio||1,2));
+ const scn=new GL.Scene(),cam=new GL.PerspectiveCamera(55,1,.1,700),BG=new GL.Color('#c9774a'),BG2=new GL.Color('#b3683f');
+ scn.background=new GL.Color();scn.fog=new GL.FogExp2(0xc9774a,.011);
+ const hemi=new GL.HemisphereLight(0xffd2b0,0x5a2a18,.75),sun=new GL.DirectionalLight(0xfff0e0,1.15);scn.add(hemi,sun);
+ const M=(g,c,o={})=>new GL.Mesh(g,new GL.MeshStandardMaterial(Object.assign({color:c,roughness:.8,flatShading:true},o)));
+ const nz=(x,z)=>Math.sin(x*.08)*2.2+Math.sin(z*.07+1)*2+Math.sin((x+z)*.2)*.7+Math.sin(x*.3)*Math.cos(z*.25)*.4;
+ const hy=(x,z)=>{const r=Math.hypot(x,z);return nz(x,z)*Math.min(1,r/18)+(r>90?Math.pow((r-90)/40,2)*8:0)};
+ const tg=new GL.PlaneGeometry(500,500,150,150);tg.rotateX(-Math.PI/2);const ps=tg.attributes.position,cl=[];
+ for(let i=0;i<ps.count;i++){const x=ps.getX(i),z=ps.getZ(i);ps.setY(i,hy(x,z));const s=.75+.25*Math.sin(x*.3+z*.2)+.12*rn(i);cl.push(.62*s,.27*s,.14*s)}
+ tg.setAttribute('color',new GL.Float32BufferAttribute(cl,3));tg.computeVertexNormals();
+ scn.add(new GL.Mesh(tg,new GL.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true})));
+ for(let i=0;i<70;i++){const a=rn(i+1)*6.28,r=14+rn(i+9)*110,x=Math.cos(a)*r,z=Math.sin(a)*r,m=M(new GL.IcosahedronGeometry(.6+rn(i+3)*2.2,0),'#7a3a24');m.position.set(x,hy(x,z)+.3,z);m.rotation.set(rn(i),rn(i+2),rn(i+4));m.scale.y=.7;scn.add(m)}
+ for(let i=0;i<16;i++){const a=i/16*6.28+rn(i)*.3,r=170+rn(i+5)*30,h=30+rn(i+2)*40,m=M(new GL.ConeGeometry(28+rn(i+7)*20,h,6),'#6a2a1a');m.position.set(Math.cos(a)*r,h/2-6,Math.sin(a)*r);scn.add(m)}
+ const sunM=new GL.Mesh(new GL.SphereGeometry(7,16,12),new GL.MeshBasicMaterial({color:0xdff0ff,fog:false}));sunM.position.set(-120,70,-220);scn.add(sunM);
+ const pho=new GL.Mesh(new GL.IcosahedronGeometry(5,1),new GL.MeshBasicMaterial({color:0x9a8f88,fog:false}));pho.position.set(100,110,-250);scn.add(pho);
+ function rocketModel(){const g=new GL.Group(),body=M(new GL.CylinderGeometry(1.5,1.7,7,16),'#e8e8f0',{roughness:.5}),nose=M(new GL.ConeGeometry(1.5,2.6,16),'#ff5a4d'),win=M(new GL.SphereGeometry(.55,12,10),'#45b0ff',{emissive:0x113355});nose.position.y=4.8;win.position.set(0,1.2,1.4);g.add(body,nose,win);
+  for(let i=0;i<3;i++){const f=M(new GL.BoxGeometry(.2,2.2,1.6),'#ff5a4d'),a=i*2.094;f.position.set(Math.sin(a)*1.8,-2.4,Math.cos(a)*1.8);f.rotation.y=a;g.add(f)}g.userData.body=body;return g}
+ const wreck=rocketModel();wreck.userData.body.material.color.set('#8a8a92');wreck.position.set(-17,hy(-17,-8)+2.4,-8);wreck.rotation.set(0,.4,1.25);scn.add(wreck);
+ const smN=50,smA=new Float32Array(smN*3),smG=new GL.BufferGeometry();smG.setAttribute('position',new GL.BufferAttribute(smA,3));const smk=new GL.Points(smG,new GL.PointsMaterial({color:0x2a2420,size:3.2,transparent:true,opacity:.5,depthWrite:false}));smk.frustumCulled=false;scn.add(smk);
+ const asc=rocketModel();asc.scale.setScalar(1.3);const ay=hy(15,-4);asc.position.set(15,ay+4.8,-4);scn.add(asc);
+ const padM=M(new GL.CylinderGeometry(4.5,5,.6,24),'#666');padM.position.set(15,ay+.2,-4);scn.add(padM);
+ const scaf=new GL.Group();for(let i=0;i<4;i++){const b=M(new GL.BoxGeometry(.15,9,.15),'#c9a98a'),a=i*1.57+.78;b.position.set(Math.cos(a)*2.9,0,Math.sin(a)*2.9);scaf.add(b)}for(let k=-3;k<=3;k+=3){const b=M(new GL.BoxGeometry(5.8,.12,.12),'#c9a98a');b.position.y=k;scaf.add(b)}asc.add(scaf);
+ const gl2=new GL.PointLight(0x6fff9a,0,28);gl2.position.set(15,ay+8,-4);scn.add(gl2);
+ const ast=new GL.Group(),hd=M(new GL.SphereGeometry(.55,14,12),'#f4f4f8'),vz=M(new GL.SphereGeometry(.38,12,10),'#ff9b3d',{emissive:0x442200});ast.add(M(new GL.CylinderGeometry(.5,.6,1.3,12),'#f4f4f8'));hd.position.y=1.1;vz.position.set(0,1.15,.3);vz.scale.set(1,.8,.7);ast.add(hd,vz);const a0=hy(-3,5)+.9;ast.position.set(-3,a0,5);scn.add(ast);
+ const bs=new GL.Group();scn.add(bs);let key='#',blink=[];
+ function build(){while(bs.children.length)bs.remove(bs.children[0]);blink=[];if(!S)return;
+  S.poi.forEach(p=>{const g=new GL.Group(),b=new GL.Mesh(new GL.CylinderGeometry(.25,.25,9,8),new GL.MeshBasicMaterial({color:(p.core||p.k=='rpart'||p.k=='gate')?0xffd54a:0x6fe0ff,transparent:true,opacity:.4,depthWrite:false}));b.position.y=4.5;
+   const c2=document.createElement('canvas');c2.width=c2.height=96;const x2=c2.getContext('2d');x2.font='64px serif';x2.textAlign='center';x2.textBaseline='middle';x2.fillText(p.core?'⭐':ICO[p.k],48,52);
+   const sp=new GL.Sprite(new GL.SpriteMaterial({map:new GL.CanvasTexture(c2),depthTest:false}));sp.scale.set(4.5,4.5,1);sp.position.y=10.5;g.add(b,sp);g.position.set(p.x,hy(p.x,p.z),p.z);bs.add(g)});
+  for(let i=0;i<S.farms;i++){const [x,z]=pos('farms',i),g=new GL.Group(),d=M(new GL.SphereGeometry(2.1,18,12,0,6.283,0,1.5708),'#5fe08a',{transparent:true,opacity:.42,roughness:.2,flatShading:false});g.add(d);
+   for(let k=0;k<4;k++){const pl=M(new GL.ConeGeometry(.25,1.2,6),'#2fb55a');pl.position.set(Math.cos(k*1.57)*.9,.6,Math.sin(k*1.57)*.9);g.add(pl)}
+   g.add(M(new GL.CylinderGeometry(2.2,2.4,.3,18),'#8a8a92'));g.position.set(x,hy(x,z)+.15,z);bs.add(g)}
+  for(let i=0;i<S.panels;i++){const [x,z]=pos('panels',i),g=new GL.Group(),pole=M(new GL.CylinderGeometry(.12,.12,1.6,6),'#999'),pn=M(new GL.BoxGeometry(3.2,.12,2.2),S.dust?'#b5784f':'#2f6fd0',{metalness:.6,roughness:.3});pole.position.y=.8;pn.position.y=1.7;pn.rotation.x=-.5;g.add(pole,pn);g.position.set(x,hy(x,z),z);bs.add(g)}
+  for(let i=0;i<S.ext;i++){const [x,z]=pos('ext',i),g=new GL.Group(),tw=M(new GL.CylinderGeometry(.6,.9,3.6,10),'#9aa'),lt=M(new GL.SphereGeometry(.3,8,8),'#66eeff',{emissive:0x66eeff});lt.position.y=2.2;g.add(tw,lt);g.position.set(x,hy(x,z)+1.8,z);bs.add(g);blink.push(lt)}
+  if(S.shield){bs.add(new GL.Mesh(new GL.SphereGeometry(25,28,16,0,6.283,0,1.5708),new GL.MeshBasicMaterial({color:0x78c8ff,wireframe:true,transparent:true,opacity:.14+.1*S.shield})));
+   if(S.shield>1)bs.add(new GL.Mesh(new GL.SphereGeometry(24.8,28,16,0,6.283,0,1.5708),new GL.MeshBasicMaterial({color:0x78c8ff,transparent:true,opacity:.07,side:GL.DoubleSide,depthWrite:false})))}}
+ const N=2200,sp=new Float32Array(N*3);for(let i=0;i<N;i++){sp[i*3]=(rn(i)-.5)*140;sp[i*3+1]=rn(i+400)*30;sp[i*3+2]=(rn(i+800)-.5)*140}
+ const sg=new GL.BufferGeometry();sg.setAttribute('position',new GL.BufferAttribute(sp,3));const sm=new GL.PointsMaterial({color:0xe8b080,size:.45,transparent:true,opacity:.2,depthWrite:false}),dust=new GL.Points(sg,sm);dust.frustumCulled=false;scn.add(dust);
+ let lh='',yaw=.6,pit=.38,dist=44,tdist=44,drag=null,st3=0,flash=0,tm=0,last=0,mode=null;
+ const ok=e=>['gl','home','hero'].includes(e.target.id);
+ addEventListener('pointerdown',e=>{if(ok(e))drag=[e.clientX,e.clientY]});
+ addEventListener('pointermove',e=>{if(!drag)return;yaw-=(e.clientX-drag[0])*.005;pit=Math.max(.2,Math.min(1.1,pit+(e.clientY-drag[1])*.004));drag=[e.clientX,e.clientY]});
+ addEventListener('pointerup',()=>drag=null);
+ addEventListener('wheel',e=>{if(S&&e.target.id=='gl')tdist=Math.max(22,Math.min(70,tdist+e.deltaY*.03))},{passive:true});
+ function rz(){const W=innerWidth,H=innerHeight;R3.setSize(W,H,false);cam.aspect=W/H;if(S){const hh=$('#hud').offsetHeight,uh=$('#ui').offsetHeight;cam.setViewOffset(W,H,0,Math.round((uh-hh)/2),W,H)}else cam.clearViewOffset();cam.updateProjectionMatrix()}
+ addEventListener('resize',rz);rz();
+ const rc=new GL.Raycaster(),v2=new GL.Vector2(),v3=new GL.Vector3();
+ const grd=(mx,my)=>{v2.set(mx/innerWidth*2-1,-(my/innerHeight)*2+1);rc.setFromCamera(v2,cam);const o=rc.ray.origin,d=rc.ray.direction;if(d.y>=-.01)return null;let h=0,px=0,pz=0;for(let k=0;k<4;k++){const t=(h-o.y)/d.y;px=o.x+d.x*t;pz=o.z+d.z*t;h=hy(px,pz)}return Math.hypot(px,pz)>80?null:{x:px,z:pz}};
+ const nr=(x,y,z,mx,my,r)=>{v3.set(x,y,z).project(cam);return Math.hypot((v3.x+1)/2*innerWidth-mx,(1-v3.y)/2*innerHeight-my)<r};
+ const mkR=r=>{const m=new GL.Mesh(new GL.RingGeometry(r*.8,r,36),new GL.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:.9,side:GL.DoubleSide,depthTest:false}));m.rotation.x=-Math.PI/2;m.visible=false;m.renderOrder=9;scn.add(m);return m};
+ const rR=mkR(6),rW=mkR(5.5),rA=mkR(2),rC=mkR(2.2),rP=Array.from({length:9},()=>mkR(2.4)),RG=[rR,rW,rA,rC,...rP],wy=hy(-17,-8),sy2=hy(-3,5);
+ G3={pick(mx,my){const R=Math.max(60,innerHeight*.1);let panel=false;if(S)for(let i=0;i<S.panels;i++){const[x,z]=pos('panels',i);if(nr(x,hy(x,z)+1.6,z,mx,my,R*.8))panel=true}
+  let poi=0,bd=1e9;if(S)S.poi.forEach((p,i)=>{v3.set(p.x,hy(p.x,p.z)+2.5,p.z).project(cam);const d=Math.hypot((v3.x+1)/2*innerWidth-mx,(1-v3.y)/2*innerHeight-my);if(d<R*.9&&d<bd){bd=d;poi=i+1}});
+  return{pt:grd(mx,my),poi,rocket:nr(15,ay+5,-4,mx,my,R*1.3),wreck:nr(-17,wy+1.5,-8,mx,my,R*1.2),self:nr(-3,sy2+1.2,5,mx,my,R*.7),panel}},
+  hint(a,mx,my,ok){RG.forEach(r=>r.visible=false);if(!a)return;
+   if(a.t=='ground'||a.t=='spot'){const p=grd(mx,my);if(p){rC.position.set(p.x,hy(p.x,p.z)+.3,p.z);rC.material.color.set(ok?0x7bd96b:0xff6b5a);rC.visible=true}}
+   else if(a.t=='panel'){for(let i=0;i<S.panels&&i<6;i++){const[x,z]=pos('panels',i);rP[i].position.set(x,hy(x,z)+.3,z);rP[i].material.color.set(0x7bd96b);rP[i].visible=true}}
+   else if(a.t=='poi'){S.poi.slice(0,9).forEach((p,i)=>{rP[i].position.set(p.x,hy(p.x,p.z)+.3,p.z);rP[i].material.color.set(p.core?0xffd54a:0x7bd96b);rP[i].visible=true})}
+   else{const r=a.t=='rocket'?rR:a.t=='wreck'?rW:rA,q=a.t=='rocket'?[15,ay+.6,-4]:a.t=='wreck'?[-17,wy+.5,-8]:[-3,sy2+.2,5];r.position.set(q[0],q[1],q[2]);r.material.color.set(ok?0x7bd96b:0xffe08a);r.visible=true}}};
+ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000||.016);last=now;tm+=dt;
+  const gm=!!S;{const lk=S?$('#hud').offsetHeight+'|'+$('#ui').offsetHeight:'';if(lk!==lh){lh=lk;rz()}}if(gm!==mode){mode=gm;rz();tdist=gm?36:44}
+  const k=S?`${S.farms}|${S.panels}|${S.ext}|${S.shield}|${S.dust?1:0}|${S.poi.map(p=>p.id)}`:'';if(k!==key){key=k;build()}
+  st3+=(((S&&S.storm)?1:0)-st3)*Math.min(1,dt*1.5);const m=st3;
+  scn.background.copy(BG).lerp(BG2,m);scn.fog.color.copy(scn.background);scn.fog.density=.011+.009*m;
+  if(m>.5&&rn(Math.floor(tm*6))>.93)flash=.8;flash=Math.max(0,flash-dt*3);
+  sun.intensity=1.15-.25*m+flash*1.2;hemi.intensity=.75-.1*m+flash*.6;
+  const a=-.5+(S?S.day:0)/DAYS*1.3;sun.position.set(-60+Math.cos(a)*30,45+Math.sin(a)*15,40);
+  const hu=S?S.hull:10,fu=S?S.fuel:0,bm=asc.userData.body.material;bm.color.setRGB(.25+.65*hu/100,.2+.7*hu/100,.2+.72*hu/100);bm.emissive.setRGB(0,fu/100*.45,fu/100*.2);gl2.intensity=fu/100*1.6;scaf.visible=hu<100;
+  for(let i=0;i<smN;i++){const q=(tm*.15+i/smN)%1;smA[i*3]=-17+Math.sin(q*5+i)*1.5;smA[i*3+1]=3+q*14;smA[i*3+2]=-8+Math.cos(q*4+i)*1.5}smG.attributes.position.needsUpdate=true;
+  const spd=(1+m*22)*dt;for(let i=0;i<N;i++){sp[i*3]+=spd*(.3+rn(i+3));if(sp[i*3]>70)sp[i*3]-=140;if(m>.05)sp[i*3+1]=(sp[i*3+1]+spd*.1*(rn(i)-.5))}sg.attributes.position.needsUpdate=true;sm.opacity=.2+.15*m;
+  RG.forEach(r=>r.visible&&r.scale.setScalar(1+.1*Math.sin(tm*8)));ast.position.y=a0+Math.sin(tm*2)*.08;ast.rotation.y=Math.sin(tm*.5)*.7;pho.rotation.y=tm*.2;blink.forEach((l,i)=>l.visible=Math.sin(tm*4+i)>0);
+  dist+=(tdist-dist)*.08;if(!drag)yaw+=dt*(gm?.03:.08);
+  cam.position.set(Math.sin(yaw)*Math.cos(pit)*dist+(Math.random()-.5)*.1*m,3+Math.sin(pit)*dist,Math.cos(yaw)*Math.cos(pit)*dist);cam.lookAt(0,3,0);
+  R3.render(scn,cam)}
+ requestAnimationFrame(loop)}
+if(R3){try{init3D();cv.style.display='none'}catch(e){console.error(e);R3=null}}
+if(!R3)draw();intro();
+</script></body></html>
